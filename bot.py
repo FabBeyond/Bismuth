@@ -29,6 +29,7 @@ class Bismuth(commands.AutoShardedBot):
     async def setup_hook(self):
         self.pool = await asyncpg.create_pool(config.DATABASE_URL, min_size=1, max_size=10)
         self.session = aiohttp.ClientSession()
+        await self.run_migrations()
 
         for file in Path("cogs").glob("*.py"):
             if file.stem.startswith("_"):
@@ -49,6 +50,18 @@ class Bismuth(commands.AutoShardedBot):
     async def on_shard_ready(self, shard_id: int):
         log.info("Shard %s ready", shard_id)
 
+    async def run_migrations(self):
+        async with self.pool.acquire() as conn:
+            await conn.execute("CREATE TABLE IF NOT EXISTS schema_migrations (name TEXT PRIMARY KEY)")
+            done = {r["name"] for r in await conn.fetch("SELECT name FROM schema_migrations")}
+
+            for file in sorted(Path("db/migrations").glob("*.sql")):
+                if file.name in done:
+                    continue
+                async with conn.transaction():
+                    await conn.execute(file.read_text())
+                    await conn.execute("INSERT INTO schema_migrations (name) VALUES ($1)", file.name)
+                log.info("Applied migration %s", file.name)
 
 bot = Bismuth()
 
