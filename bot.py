@@ -14,6 +14,7 @@ log = logging.getLogger("bismuth")
 class Bismuth(commands.AutoShardedBot):
     def __init__(self):
         intents = discord.Intents.default()
+        intents.members = True
 
         super().__init__(
             command_prefix=commands.when_mentioned,
