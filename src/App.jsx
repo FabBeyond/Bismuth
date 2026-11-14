@@ -5,19 +5,7 @@ import bismuthLogo from "./assets/BismuthLogo.svg";
 function App() {
   return (
     <div className="main">
-      <div className="nav-bar">
-        <div className="nav-left">
-          <img src={bismuthLogo} alt="bismuth logo" />
-          <p className="title">BISMUTH</p>
-        </div>
-        <div className="nav-right">
-          <a href="https://github.com/FabBeyond/bismuthbot">BOT SOURCE</a>
-          <a href="https://github.com/FabBeyond/bismuthsite">SITE SOURCE</a>
-          <a href="hwef" className="login-button">
-            LOG IN WITH DISCORD
-          </a>
-        </div>
-      </div>
+      <Navbar />
       <div className="content">
         <div className="top-part">
           <div className="left-part">
@@ -28,9 +16,31 @@ function App() {
             </p>
           </div>
           <div className="right-part">
-            <img src={pyramid} alt="pyramid" />
+            <PyramidSchematic />
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function PyramidSchematic() {
+  return <img src={pyramid} alt="pyramid" />;
+}
+
+function Navbar() {
+  return (
+    <div className="nav-bar">
+      <div className="nav-left">
+        <img src={bismuthLogo} alt="bismuth logo" />
+        <p className="title">BISMUTH</p>
+      </div>
+      <div className="nav-right">
+        <a href="https://github.com/FabBeyond/bismuthbot">BOT SOURCE</a>
+        <a href="https://github.com/FabBeyond/bismuthsite">SITE SOURCE</a>
+        <a href="hwef" className="login-button">
+          LOG IN WITH DISCORD
+        </a>
       </div>
     </div>
   );
