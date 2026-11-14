@@ -68,6 +68,7 @@ async def callback(request: Request, code: str | None = None, state: str | None 
         user.raise_for_status()
 
     u = user.json()
+    print(u)
     request.session["user"] = {
         "id": u["id"],
         "username": u["username"],
@@ -85,3 +86,31 @@ def me(request: Request):
 def logout(request: Request):
     request.session.clear()
     return {"ok": True}
+
+@app.get("/api/guilds")
+async def guilds(request: Request):
+    access_token = request.session.get("access_token")
+    if not access_token:
+        raise HTTPException(401, "Not logged in")
+
+    async with httpx.AsyncClient() as client:
+        r = await client.get(
+            f"{API}/users/@me/guilds",
+            headers={"Authorization": f"Bearer {access_token}"},
+            params={"with_counts": "true"}
+        )
+
+    if r.status_code == 401:
+        request.session.clear()
+        raise HTTPException(401, "Session expired")
+    r.raise_for_status()
+
+    return [
+        {
+            "id": g["id"],
+            "name": g["name"],
+            "icon": g["icon"],
+            "owner": g["owner"],
+            "permissions": g["permissions"]
+        } for g in r.json()
+    ]
