@@ -188,3 +188,24 @@ body {
   font-size: 20px;
   font-weight: 600;
 }
+.page-title {
+  font-size: 100px;
+  color: #dcebff;
+  font-weight: 600;
+  margin-bottom: 0;
+}
+.page-subtitle {
+  font-size: 25px;
+  font-weight: 400;
+  color: #a9c3e6;
+}
+.top-part {
+  display: flex;
+  flex-direction: row;
+}
+.top-part > * {
+  width: 50%;
+}
+.left-part {
+  padding-right: 70px;
+}
