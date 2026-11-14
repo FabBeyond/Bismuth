@@ -1,6 +1,9 @@
 import "./index.css";
 import pyramid from "./assets/MainPagePyramid.svg";
 import bismuthLogo from "./assets/BismuthLogo.svg";
+import { useEffect, useState } from "react";
+
+const API_URL = import.meta.env.VITE_API_URL ?? "";
 
 function App() {
   return (
@@ -48,7 +51,32 @@ function PyramidSchematic() {
   );
 }
 
+function avatarUrl(user) {
+  if (user.avatar) {
+    return `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64`;
+  }
+  const index = Number((BigInt(user.id) >> 22n) % 6n);
+  return `https://cdn.discordapp.com/embed/avatars/${index}.png`;
+}
+
 function Navbar() {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/me`, { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setUser)
+      .catch(() => setUser(null));
+  }, []);
+
+  async function logout() {
+    await fetch(`${API_URL}/api/logout`, {
+      method: "POST",
+      credentials: "include",
+    });
+    setUser(null);
+  }
+
   return (
     <div className="nav-bar">
       <div className="nav-left">
@@ -58,9 +86,16 @@ function Navbar() {
       <div className="nav-right">
         <a href="https://github.com/FabBeyond/bismuthbot">BOT SOURCE</a>
         <a href="https://github.com/FabBeyond/bismuthsite">SITE SOURCE</a>
-        <a href="hwef" className="login-button">
-          LOG IN WITH DISCORD
-        </a>
+        {user ? (
+          <button className="login-button" onClick={logout} title="Log out">
+            <img src={avatarUrl(user)} alt="" />
+            {(user.global_name ?? user.username).toUpperCase()}
+          </button>
+        ) : (
+          <a href={`${API_URL}/auth/login`} className="login-button">
+            LOG IN WITH DISCORD
+          </a>
+        )}
       </div>
     </div>
   );

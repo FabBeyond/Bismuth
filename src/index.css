@@ -181,6 +181,13 @@ body {
   font-size: 20px;
   font-weight: 700;
   color: #18345a;
+  border: none;
+  font-family: inherit;
+  gap: 10px;
+}
+.login-button img {
+  height: 60%;
+  border-radius: 50%;
 }
 .nav-right a:not(.login-button) {
   text-decoration: none;
@@ -202,6 +209,7 @@ body {
 .top-part {
   display: flex;
   flex-direction: row;
+  gap: 100px;
 }
 .left-part {
   width: calc(50% - 100px);
