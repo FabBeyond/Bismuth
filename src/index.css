@@ -138,7 +138,7 @@ body {
   padding: 30px;
 }
 .nav-bar {
-  width: calc(100%-60px);
+  width: calc(100% - 60px);
   height: 80px;
   padding: 30px;
   display: flex;
@@ -203,9 +203,35 @@ body {
   display: flex;
   flex-direction: row;
 }
-.top-part > * {
-  width: 50%;
-}
 .left-part {
-  padding-right: 70px;
+  width: calc(50% - 100px);
+}
+.pyramid-schematic {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-end;
+  gap: 30px;
+}
+.pyramid-schematic img {
+  width: 100%;
+  margin-top: 100px;
+}
+table {
+  border: 2px solid #dcebff;
+  border-collapse: collapse;
+  width: 400px;
+  color: #dcebff;
+  font-size: 20px;
+  font-weight: 600;
+}
+tr {
+  border-bottom: 2px solid #dcebff;
+}
+td {
+  padding: 10px;
+}
+td:first-child {
+  color: #a9c3e6;
+  border-right: 2px solid #dcebff;
 }
