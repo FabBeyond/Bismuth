@@ -3,8 +3,12 @@ import pyramid from "./assets/MainPagePyramid.svg";
 import bismuthLogo from "./assets/BismuthLogo.svg";
 import { useEffect, useState } from "react";
 import { Routes, Route, Outlet, Link, useNavigate } from "react-router";
+import { LogOutIcon } from "lucide-react";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "";
+let guildsPromise = null;
+const ADMINISTRATOR = 0x8n;
+const MANAGE_GUILD = 0x20n;
 
 function App() {
   return (
@@ -46,10 +50,65 @@ function Home() {
   );
 }
 function Dashboard() {
-  return <p>Dashboard</p>;
+  const [guilds, setGuilds] = useState(null);
+
+  useEffect(() => {
+    let ignore = false;
+    fetchGuilds()
+      .then((g) => !ignore && setGuilds(g))
+      .catch(() => !ignore && setGuilds(null));
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  if (!guilds) {
+    return <p className="loading-guilds">Loading Servers...</p>;
+  }
+
+  const manageable = guilds.filter(canManage);
+  console.log(manageable);
+  return (
+    <div className="dashboard-server-select">
+      {manageable.map((item) => (
+        <div key={item.id} className="server">
+          <GuildIcon guild={item} />
+          <p>{item.name}</p>
+          <div style={{ flex: 1 }}></div>
+          <button>MANAGE</button>
+        </div>
+      ))}
+    </div>
+  );
 }
 function NotFound() {
   return <p>Not Found</p>;
+}
+function GuildIcon({ guild }) {
+  const url = guildIconUrl(guild);
+  if (url) return <img src={url} alt="" className="guild-icon" />;
+
+  const initials = guild.name
+    .split(/\s+/)
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 3);
+  return <div className="guild-icon guild-icon-fallback">{initials}</div>;
+}
+function guildIconUrl(guild, size = 128) {
+  if (!guild.icon) return null;
+
+  const ext = guild.icon.startsWith("a_") ? "gif" : "png";
+  return `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.${ext}?size=${size}`;
+}
+
+function canManage(guild) {
+  const perms = BigInt(guild.permissions);
+  return (
+    guild.owner ||
+    (perms & ADMINISTRATOR) === ADMINISTRATOR ||
+    (perms & MANAGE_GUILD) === MANAGE_GUILD
+  );
 }
 
 function PyramidSchematic() {
@@ -82,6 +141,21 @@ function avatarUrl(user) {
   }
   const index = Number((BigInt(user.id) >> 22n) % 6n);
   return `https://cdn.discordapp.com/embed/avatars/${index}.png`;
+}
+function fetchGuilds() {
+  if (guildsPromise) return guildsPromise;
+
+  guildsPromise = fetch(`${API_URL}/api/guilds`, { credentials: "include" })
+    .then((r) => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    })
+    .catch((err) => {
+      guildsPromise = null;
+      throw err;
+    });
+
+  return guildsPromise;
 }
 
 function Navbar() {
@@ -121,14 +195,17 @@ function Navbar() {
           API SOURCE
         </a>
         {user ? (
-          <button
-            className="login-button"
-            onClick={() => navigate("/dashboard")}
-            title="Log out"
-          >
-            <img src={avatarUrl(user)} alt="" />
-            {(user.global_name ?? user.username).toUpperCase()}
-          </button>
+          <>
+            <button
+              className="login-button"
+              onClick={() => navigate("/dashboard")}
+              title="Log out"
+            >
+              <img src={avatarUrl(user)} alt="" />
+              {(user.global_name ?? user.username).toUpperCase()}
+            </button>
+            <LogOutIcon className="logout-icon" onClick={() => logout()} />
+          </>
         ) : (
           <a href={`${API_URL}/auth/login`} className="login-button">
             LOG IN WITH DISCORD

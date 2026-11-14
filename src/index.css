@@ -244,3 +244,59 @@ td:first-child {
   color: #a9c3e6;
   border-right: 2px solid #dcebff;
 }
+.logout-icon {
+  color: #dcebff;
+  height: 40px;
+  width: 40px;
+  cursor: pointer;
+}
+.dashboard-server-select {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  margin: 40px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.server {
+  display: flex;
+  flex-direction: column;
+  border: 4px solid #dcebff;
+  align-items: center;
+  text-align: center;
+  color: #dcebff;
+  width: 200px;
+  padding: 20px;
+}
+.server p {
+  font-size: 20px;
+  font-weight: 600;
+}
+.guild-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+}
+.guild-icon-fallback {
+  background-color: black;
+  font-size: 50px;
+}
+.server button {
+  cursor: pointer;
+  border: none;
+  background-color: #dcebff;
+  color: #18345a;
+  padding: 15px;
+  font-weight: 800;
+  font-size: 25px;
+}
+.loading-guilds {
+  color: #dcebff;
+  font-size: 70px;
+  font-weight: 800;
+  width: 100%;
+  text-align: center;
+}
