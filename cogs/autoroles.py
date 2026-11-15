@@ -2,6 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from utils.utils import guild_module_active
 
 class AutoRoles(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -9,6 +10,9 @@ class AutoRoles(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
+        if not await guild_module_active(self.bot.pool, member.guild.id, "autoroles"):
+            return
+
         role_ids = await self.get_auto_roles(member.guild.id)
         roles = [member.guild.get_role(role_id) for role_id in role_ids]
         roles = [r for r in roles if r is not None]
