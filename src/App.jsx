@@ -105,7 +105,12 @@ function ServerSettings() {
 
   const OpenPart = dashboardParts[openModule];
 
-  return <OpenPart setOpenModule={setOpenModule} />;
+  return (
+    <>
+      {openModule && <ModuleBackButton setOpenModule={setOpenModule} />}
+      <OpenPart setOpenModule={setOpenModule} />
+    </>
+  );
 }
 function ModuleSelect({ setOpenModule }) {
   const [enabledModules, setEnabledModules] = useState();
@@ -139,6 +144,13 @@ function ModuleSelect({ setOpenModule }) {
         moduleId="autoroles"
       />
     </div>
+  );
+}
+function ModuleBackButton({ setOpenModule }) {
+  return (
+    <button onClick={() => setOpenModule(null)} className="module-back-btn">
+      BACK
+    </button>
   );
 }
 // oh when the miseryyyyy is code rotteddddd
