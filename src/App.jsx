@@ -11,6 +11,7 @@ import {
   useParams,
 } from "react-router";
 import { LogOutIcon } from "lucide-react";
+import EmojiPicker from "emoji-picker-react";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "";
 let guildsPromise = null;
@@ -142,20 +143,27 @@ function ModuleSelect({ setOpenModule }) {
 }
 // oh when the miseryyyyy is code rotteddddd
 function ReactionRoles({ setOpenModule }) {
-  //TODO: Add actual channels endpoint and fetch it here
   const [channels, setChannels] = useState([]);
-  const [emojiInput, setEmojiInput] = useState("");
+  const [emojis, setEmojis] = useState([]);
+  const [emoji, setEmoji] = useState(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const { guildId } = useParams();
 
   useEffect(() => {
-    async function getChannels() {
+    async function getChannelsAndEmojis() {
       const res = await fetch(`${API_URL}/api/guilds/${guildId}/channels`, {
         credentials: "include",
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setChannels(await res.json());
+
+      const resEmojis = await fetch(`${API_URL}/api/guilds/${guildId}/emojis`, {
+        credentials: "include",
+      });
+      if (!resEmojis.ok) throw new Error(`HTTP ${res.status}`);
+      setEmojis(await resEmojis.json());
     }
-    getChannels();
+    getChannelsAndEmojis();
   }, [guildId]);
 
   return (
@@ -171,14 +179,52 @@ function ReactionRoles({ setOpenModule }) {
               </option>
             ))}
         </select>
-        <input
-          type="text"
-          value={emojiInput}
-          onChange={(e) => setEmojiInput(e.target.value)}
-        />
+        <div className="emoji-field">
+          <button onClick={() => setPickerOpen((o) => !o)}>
+            {emoji ? <Emoji value={emoji} /> : "PICK EMOJI"}
+          </button>
+        </div>
+        {pickerOpen && (
+          <div className="emoji-popup">
+            <EmojiPicker
+              theme="dark"
+              customEmojis={emojis.map((e) => ({
+                id: e.id,
+                names: [e.name],
+                imgUrl: `https://cdn.discordapp.com/emojis/${e.id}.${e.animated ? "gif" : "png"}`,
+              }))}
+              onEmojiClick={(e) => {
+                if (e.isCustom) {
+                  const g = emojis.find((x) => x.id === e.emoji);
+                  setEmoji(`<${g.animated ? "a" : ""}:${g.name}:${g.id}>`);
+                } else {
+                  setEmoji(e.emoji);
+                }
+                setPickerOpen(false);
+              }}
+            />
+          </div>
+        )}
         <button>ADD</button>
       </div>
     </div>
+  );
+}
+function Emoji({ value, size = 24 }) {
+  const match = value?.match(/^<(a?):(\w+):(\d+)>$/);
+
+  if (!match) return <span style={{ fontSize: size }}>{value}</span>;
+
+  const [, animated, name, id] = match;
+  return (
+    <img
+      src={`https://cdn.discordapp.com/emojis/${id}.${animated ? "gif" : "png"}?size=64`}
+      alt={`:${name}:`}
+      title={`:${name}:`}
+      width={size}
+      height={size}
+      style={{ objectFit: "contain" }}
+    />
   );
 }
 function AutoRoles() {}
