@@ -1,8 +1,10 @@
 import os
+import time
 import secrets
 from urllib.parse import urlencode
 from contextlib import asynccontextmanager
 import asyncpg
+from pydantic import BaseModel
 
 import httpx
 from dotenv import load_dotenv
@@ -22,6 +24,7 @@ DATABASE_URL = os.environ["DATABASE_URL"]
 API = "https://discord.com/api"
 ADMINISTRATOR = 1 << 3
 MANAGE_GUILD = 1 << 5
+_guild_cache = {}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -35,7 +38,7 @@ def require_user(request: Request):
         raise HTTPException(401, "Not logged in")
     return user
 async def require_guild_manager(guild_id: int, request: Request, user: dict = Depends(require_user)):
-    guilds = await get_user_guilds()
+    guilds = await get_user_guilds(request, user)
     g = next((g for g in guilds if int(g["id"]) == guild_id), None)
     if g is None:
         raise HTTPException(404, "Guild not found")
@@ -44,6 +47,21 @@ async def require_guild_manager(guild_id: int, request: Request, user: dict = De
         raise HTTPException(403, "Missing Manage Server")
 
     return g
+async def get_user_guilds(request: Request, user: dict):
+    cached = _guild_cache.get(user["id"])
+    if cached and time.time() - cached[0] < 60:
+        return cached[1]
+    async with httpx.AsyncClient() as client:
+        r = await client.get(
+            f"{API}/users/@me/guilds",
+            headers={"Authorization": f"Bearer {request.session['access_token']}"}
+        )
+    if r.status_code == 401:
+        request.session.clear()
+        raise HTTPException(401, "Session expired")
+    r.raise_for_status()
+    _guild_cache[user["id"]] = (time.time(), r.json())
+    return r.json()
 
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(
@@ -134,24 +152,11 @@ def logout(request: Request):
     return {"ok": True}
 
 @app.get("/api/guilds")
-async def guilds(request: Request):
-    access_token = request.session.get("access_token")
-    if not access_token:
-        raise HTTPException(401, "Not logged in")
-
+async def guilds(request: Request, user: dict = Depends(require_user)):
     async with httpx.AsyncClient() as client:
-        r = await client.get(
-            f"{API}/users/@me/guilds",
-            headers={"Authorization": f"Bearer {access_token}"},
-            params={"with_counts": "true"}
-        )
         bot_guilds = await fetch_bot_guilds(client)
-
-    if r.status_code == 401:
-        request.session.clear()
-        raise HTTPException(401, "Session expired")
-    r.raise_for_status()
     bot_ids = {g["id"] for g in bot_guilds}
+    r = await get_user_guilds(request, user)
 
     return [
         {
@@ -161,14 +166,38 @@ async def guilds(request: Request):
             "owner": g["owner"],
             "permissions": g["permissions"],
             "bot_in_guild": g["id"] in bot_ids
-        } for g in r.json()
+        } for g in r
     ]
 
-@app.get("/api/modules/{guild_id}/list")
-async def guild_modules(request: Request, guild_id: str):
-
+@app.get("/api/guilds/{guild_id}/modules")
+async def guild_modules(request: Request, guild_id: int, g: dict = Depends(require_guild_manager)):
     rows = await request.app.state.db.fetch(
-        "SELECT module_id FROM server_modules WHERE guild_id = $1",
-        int(guild_id),
+        "SELECT * FROM server_modules WHERE guild_id = $1",
+        guild_id,
     )
-    return [r["name"] for r in rows]
+    return [
+        {
+            "module_id": r["module_id"],
+            "enabled": r["enabled"]
+        } for r in rows
+    ]
+
+class ModuleUpdate(BaseModel):
+    enabled: bool
+
+@app.post("/api/guilds/{guild_id}/modules/{module_id}")
+async def toggle_module(
+    request: Request,
+    guild_id: int,
+    module_id: str,
+    body: ModuleUpdate,
+    g: dict = Depends(require_guild_manager)):
+    await request.app.state.db.execute(
+        """
+        INSERT INTO server_modules (guild_id, module_id, enabled)
+        VALUES ($1, $2, $3)
+        ON  CONFLICT (guild_id, module_id) DO UPDATE SET enabled = EXCLUDED.enabled
+        """,
+        guild_id, module_id, body.enabled,
+    )
+    return {"ok": True}
