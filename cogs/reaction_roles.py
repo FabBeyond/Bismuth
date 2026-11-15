@@ -2,6 +2,8 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from utils.utils import guild_module_active
+
 
 class ReactionRoles(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -9,6 +11,9 @@ class ReactionRoles(commands.Cog):
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
+        if not await guild_module_active(self.bot.pool, payload.guild_id, "reactionroles"):
+            return
+
         if payload.guild_id is None or payload.member is None or payload.member.bot:
             return
 
@@ -23,6 +28,9 @@ class ReactionRoles(commands.Cog):
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
+        if not await guild_module_active(self.bot.pool, payload.guild_id, "reactionroles"):
+            return
+
         if payload.guild_id is None:
             return
 
