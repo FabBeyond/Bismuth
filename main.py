@@ -22,8 +22,12 @@ FRONTEND_URL = os.environ["FRONTEND_URL"]
 SECURE_COOKIES = os.environ.get("SECURE_COOKIES", "false").lower() == "true"
 DATABASE_URL = os.environ["DATABASE_URL"]
 API = "https://discord.com/api"
+
 ADMINISTRATOR = 1 << 3
 MANAGE_GUILD = 1 << 5
+TEXT, VOICE, CATEGORY, ANNOUNCEMENT = 0, 2, 4, 5
+
+_channel_cache = {}
 _guild_cache = {}
 
 @asynccontextmanager
@@ -61,6 +65,15 @@ async def get_user_guilds(request: Request, user: dict):
         raise HTTPException(401, "Session expired")
     r.raise_for_status()
     _guild_cache[user["id"]] = (time.time(), r.json())
+    return r.json()
+async def bot_get(path: str):
+    async with httpx.AsyncClient() as client:
+        r = await client.get(f"{API}{path}", headers={"Authorization": f"Bot {BOT_TOKEN}"})
+    if r.status_code in (403, 404):
+        raise HTTPException(404, "Bot is not in this guild")
+    if r.status_code == 429:
+        raise HTTPException(503, "Rate limited by Discord, try again shortly")
+    r.raise_for_status()
     return r.json()
 
 app = FastAPI(lifespan=lifespan)
@@ -201,3 +214,25 @@ async def toggle_module(
         guild_id, module_id, body.enabled,
     )
     return {"ok": True}
+
+@app.get("/api/guilds/{guild_id}/channels")
+async def guild_channels(request: Request, guild_id: int, g: dict = Depends(require_guild_manager)):
+    cached = _channel_cache.get(guild_id)
+    if cached and time.time() - cached[0] < 30:
+        return cached[1]
+
+    channels = await bot_get(f"/guilds/{guild_id}/channels")
+    result = [
+        {
+            "id": c["id"],
+            "name": c["name"],
+            "type": c["type"],
+            "parent_id": c.get("parent_id"),
+            "position": c["position"]
+        }
+        for c in channels if c["type"] in (TEXT, ANNOUNCEMENT, CATEGORY)
+    ]
+
+    result.sort(key=lambda c: c["position"])
+    _channel_cache[guild_id] = (time.time(), result)
+    return result
