@@ -143,19 +143,33 @@ function ModuleSelect({ setOpenModule }) {
 // oh when the miseryyyyy is code rotteddddd
 function ReactionRoles({ setOpenModule }) {
   //TODO: Add actual channels endpoint and fetch it here
-  const channels = ["coolio", "sigma", "boy"];
+  const [channels, setChannels] = useState([]);
   const [emojiInput, setEmojiInput] = useState("");
+  const { guildId } = useParams();
+
+  useEffect(() => {
+    async function getChannels() {
+      const res = await fetch(`${API_URL}/api/guilds/${guildId}/channels`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setChannels(await res.json());
+    }
+    getChannels();
+  }, [guildId]);
 
   return (
     <div className="reaction-roles">
       <p className="rr-title">REACTION ROLES</p>
       <div className="rr-adder">
         <select>
-          {channels.map((item) => (
-            <option key={item} value={item}>
-              {item}
-            </option>
-          ))}
+          {channels
+            .filter((item) => item.type == 0)
+            .map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name}
+              </option>
+            ))}
         </select>
         <input
           type="text"
