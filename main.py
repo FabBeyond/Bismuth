@@ -236,3 +236,17 @@ async def guild_channels(request: Request, guild_id: int, g: dict = Depends(requ
     result.sort(key=lambda c: c["position"])
     _channel_cache[guild_id] = (time.time(), result)
     return result
+
+@app.get("/api/guilds/{guild_id}/emojis")
+async def guild_emojis(request: Request, guild_id: int, g: dict = Depends(require_guild_manager)):
+    emojis = await bot_get(f"/guilds/{guild_id}/emojis")
+
+    result = [
+        {
+            "id": e["id"],
+            "name": e["name"],
+            "animated": e["animated"]
+        }
+        for e in emojis
+    ]
+    return result
