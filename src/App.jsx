@@ -75,7 +75,7 @@ function Dashboard() {
   }
 
   const manageable = guilds.filter(canManage);
-  console.log(manageable);
+
   return (
     <div className="dashboard-server-select">
       {manageable.map((item) => (
@@ -84,7 +84,7 @@ function Dashboard() {
           <p>{item.name}</p>
           <div style={{ flex: 1 }}></div>
           <Link to={`/dashboard/${item.id}`} className="manage-btn">
-            MANAGE
+            {item.bot_in_guild ? "MANAGE" : "INVITE"}
           </Link>
         </div>
       ))}
@@ -95,8 +95,85 @@ function NotFound() {
   return <p>Not Found</p>;
 }
 function ServerSettings() {
+  const [enabledModules, setEnabledModules] = useState();
   const { guildId } = useParams();
-  return null;
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/guilds/${guildId}/modules`, {
+      credentials: "include",
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setEnabledModules)
+      .catch(() => setEnabledModules(null));
+  }, [guildId]);
+
+  const enabled = Object.fromEntries(
+    (enabledModules ?? []).map((item) => [item.module_id, item.enabled]),
+  );
+
+  return (
+    <div className="modules">
+      <Module
+        title="REACTION ROLES"
+        path="reaction-roles"
+        enabled={enabled.reactionroles ?? false}
+        moduleId="reactionroles"
+      />
+      <Module
+        title="AUTO ROLES"
+        path="auto-roles"
+        enabled={enabled.autoroles ?? false}
+        moduleId="autoroles"
+      />
+    </div>
+  );
+}
+function Module({ title, path, enabled, moduleId }) {
+  const [isOn, setIsOn] = useState(enabled);
+  const { guildId } = useParams();
+
+  //eslint-disable-next-line
+  useEffect(() => setIsOn(enabled), [enabled]);
+
+  async function toggleModule() {
+    const res = await fetch(
+      `${API_URL}/api/guilds/${guildId}/modules/${moduleId}`,
+      {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ enabled: !isOn }),
+      },
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  }
+
+  return (
+    <div
+      className={`module ${isOn ? "on" : ""}`}
+      onClick={async () => {
+        try {
+          await toggleModule();
+          setIsOn(!isOn);
+        } catch (err) {
+          console.log(err);
+        }
+      }}
+    >
+      <p className="module-title">{title}</p>
+      <p className="module-cte">CLICK TO {isOn ? "DISABLE" : "ENABLE"}</p>
+      <div style={{ flex: 1 }}></div>
+      <Link
+        className="module-settings-btn"
+        onClick={(e) => e.stopPropagation()}
+        to={`/dashboard/${guildId}/${path}`}
+      >
+        SETTINGS
+      </Link>
+    </div>
+  );
 }
 function GuildIcon({ guild }) {
   const url = guildIconUrl(guild);

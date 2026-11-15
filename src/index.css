@@ -301,3 +301,59 @@ td:first-child {
   width: 100%;
   text-align: center;
 }
+.modules {
+  padding: 20px;
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.module {
+  display: flex;
+  flex-direction: column;
+  border: 4px solid #dcebff;
+  width: 300px;
+  height: 220px;
+  align-items: center;
+  padding: 40px 20px;
+  cursor: pointer;
+  background-color: transparent;
+  transition: background-color 0.2s ease;
+}
+.module.on {
+  background-color: #dcebff;
+}
+.module-title {
+  color: #dcebff;
+  font-size: 35px;
+  font-weight: 1000;
+  margin: 0;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+.module.on .module-title {
+  color: #18345a;
+}
+.module-cte {
+  color: #dcebff;
+  font-size: 18px;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+.module.on .module-cte {
+  color: #18345a;
+}
+.module-settings-btn {
+  color: #18345a;
+  font-size: 25px;
+  font-weight: 800;
+  text-decoration: none;
+  background-color: #dcebff;
+  padding: 15px;
+  transition: color 0.2s ease;
+  transition: background-color 0.2s ease;
+}
+.module.on .module-settings-btn {
+  background-color: #18345a;
+  color: #dcebff;
+}
