@@ -16,6 +16,11 @@ const API_URL = import.meta.env.VITE_API_URL ?? "";
 let guildsPromise = null;
 const ADMINISTRATOR = 0x8n;
 const MANAGE_GUILD = 0x20n;
+const dashboardParts = {
+  null: ModuleSelect,
+  reactionroles: ReactionRoles,
+  autoroles: AutoRoles,
+};
 
 function App() {
   return (
@@ -95,6 +100,13 @@ function NotFound() {
   return <p>Not Found</p>;
 }
 function ServerSettings() {
+  const [openModule, setOpenModule] = useState(null);
+
+  const OpenPart = dashboardParts[openModule];
+
+  return <OpenPart setOpenModule={setOpenModule} />;
+}
+function ModuleSelect({ setOpenModule }) {
   const [enabledModules, setEnabledModules] = useState();
   const { guildId } = useParams();
 
@@ -115,20 +127,48 @@ function ServerSettings() {
     <div className="modules">
       <Module
         title="REACTION ROLES"
-        path="reaction-roles"
+        setOpenModule={setOpenModule}
         enabled={enabled.reactionroles ?? false}
         moduleId="reactionroles"
       />
       <Module
         title="AUTO ROLES"
-        path="auto-roles"
+        setOpenModule={setOpenModule}
         enabled={enabled.autoroles ?? false}
         moduleId="autoroles"
       />
     </div>
   );
 }
-function Module({ title, path, enabled, moduleId }) {
+// oh when the miseryyyyy is code rotteddddd
+function ReactionRoles({ setOpenModule }) {
+  //TODO: Add actual channels endpoint and fetch it here
+  const channels = ["coolio", "sigma", "boy"];
+  const [emojiInput, setEmojiInput] = useState("");
+
+  return (
+    <div className="reaction-roles">
+      <p className="rr-title">REACTION ROLES</p>
+      <div className="rr-adder">
+        <select>
+          {channels.map((item) => (
+            <option key={item} value={item}>
+              {item}
+            </option>
+          ))}
+        </select>
+        <input
+          type="text"
+          value={emojiInput}
+          onChange={(e) => setEmojiInput(e.target.value)}
+        />
+        <button>ADD</button>
+      </div>
+    </div>
+  );
+}
+function AutoRoles() {}
+function Module({ title, setOpenModule, enabled, moduleId }) {
   const [isOn, setIsOn] = useState(enabled);
   const { guildId } = useParams();
 
@@ -165,13 +205,15 @@ function Module({ title, path, enabled, moduleId }) {
       <p className="module-title">{title}</p>
       <p className="module-cte">CLICK TO {isOn ? "DISABLE" : "ENABLE"}</p>
       <div style={{ flex: 1 }}></div>
-      <Link
+      <button
         className="module-settings-btn"
-        onClick={(e) => e.stopPropagation()}
-        to={`/dashboard/${guildId}/${path}`}
+        onClick={(e) => {
+          setOpenModule(moduleId);
+          e.stopPropagation();
+        }}
       >
         SETTINGS
-      </Link>
+      </button>
     </div>
   );
 }

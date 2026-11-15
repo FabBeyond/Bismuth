@@ -344,6 +344,7 @@ td:first-child {
   color: #18345a;
 }
 .module-settings-btn {
+  border: none;
   color: #18345a;
   font-size: 25px;
   font-weight: 800;
@@ -352,8 +353,44 @@ td:first-child {
   padding: 15px;
   transition: color 0.2s ease;
   transition: background-color 0.2s ease;
+  cursor: pointer;
 }
 .module.on .module-settings-btn {
   background-color: #18345a;
   color: #dcebff;
+}
+.reaction-roles {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding: 20px;
+  width: calc(100% - 40px);
+}
+.rr-title {
+  font-size: 50px;
+  margin: 0;
+  color: #dcebff;
+  font-weight: 800;
+}
+.rr-adder {
+  width: 100%;
+  gap: 20px;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+}
+.rr-adder > * {
+  width: 30%;
+  color: #18345a;
+  background-color: #dcebff;
+  font-size: 30px;
+  font-weight: 700;
+}
+.rr-adder select {
+  border: none;
+}
+.rr-adder button {
+  padding: 10px;
+  width: fit-content;
+  border: none;
 }
