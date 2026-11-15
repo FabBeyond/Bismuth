@@ -2,7 +2,14 @@ import "./index.css";
 import pyramid from "./assets/MainPagePyramid.svg";
 import bismuthLogo from "./assets/BismuthLogo.svg";
 import { useEffect, useState } from "react";
-import { Routes, Route, Outlet, Link, useNavigate } from "react-router";
+import {
+  Routes,
+  Route,
+  Outlet,
+  Link,
+  useNavigate,
+  useParams,
+} from "react-router";
 import { LogOutIcon } from "lucide-react";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "";
@@ -16,6 +23,7 @@ function App() {
       <Route element={<Layout />}>
         <Route index element={<Home />} />
         <Route path="dashboard" element={<Dashboard />} />
+        <Route path="dashboard/:guildId" element={<ServerSettings />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
@@ -75,7 +83,9 @@ function Dashboard() {
           <GuildIcon guild={item} />
           <p>{item.name}</p>
           <div style={{ flex: 1 }}></div>
-          <button>MANAGE</button>
+          <Link to={`/dashboard/${item.id}`} className="manage-btn">
+            MANAGE
+          </Link>
         </div>
       ))}
     </div>
@@ -83,6 +93,10 @@ function Dashboard() {
 }
 function NotFound() {
   return <p>Not Found</p>;
+}
+function ServerSettings() {
+  const { guildId } = useParams();
+  return null;
 }
 function GuildIcon({ guild }) {
   const url = guildIconUrl(guild);
@@ -187,7 +201,9 @@ function Navbar() {
         </Link>
       </div>
       <div className="nav-right">
-        <a href="https://github.com/FabBeyond/bismuthbot">BOT SOURCE</a>
+        <a href="https://github.com/FabBeyond/BismuthBot" target="_blank">
+          BOT SOURCE
+        </a>
         <a href="https://github.com/FabBeyond/BismuthWebsite" target="_blank">
           SITE SOURCE
         </a>

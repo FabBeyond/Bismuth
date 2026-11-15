@@ -284,7 +284,8 @@ td:first-child {
   background-color: black;
   font-size: 50px;
 }
-.server button {
+.manage-btn {
+  text-decoration: none;
   cursor: pointer;
   border: none;
   background-color: #dcebff;
