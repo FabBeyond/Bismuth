@@ -163,7 +163,6 @@ async def callback(request: Request, code: str | None = None, state: str | None 
         raise_for_discord(user)
 
     u = user.json()
-    print(u)
     request.session["user"] = {
         "id": u["id"],
         "username": u["username"],
@@ -278,7 +277,6 @@ async def guild_emojis(request: Request, guild_id: int, g: dict = Depends(requir
 @app.get("/api/guilds/{guild_id}/roles")
 async def guild_roles(request: Request, guild_id: int, g: dict = Depends(require_guild_manager)):
     roles = await bot_get(f"/guilds/{guild_id}/roles")
-    print(roles)
     result = [
         {
             "id": r["id"],
