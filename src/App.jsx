@@ -177,7 +177,9 @@ function ReactionRoles({ setOpenModule }) {
       if (!resEmojis.ok) throw new Error(`HTTP ${res.status}`);
       setEmojis(await resEmojis.json());
 
-      const resRoles = await fetch(`${API_URL}/api/guilds/${guildId}/roles`);
+      const resRoles = await fetch(`${API_URL}/api/guilds/${guildId}/roles`, {
+        credentials: "include",
+      });
       if (!resRoles.ok) throw new Error(`HTTP ${res.status}`);
       setRoles(await resRoles.json());
     }
