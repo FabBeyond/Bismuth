@@ -12,10 +12,9 @@ import {
 } from "react-router";
 import { LogOutIcon, PlusIcon } from "lucide-react";
 import EmojiPicker from "emoji-picker-react";
-import { useApi } from "./api";
+import { api, useApi, API_URL } from "./api";
 import { getCDN, canManage } from "./discord";
 
-const API_URL = import.meta.env.VITE_API_URL ?? "";
 let guildsPromise = null;
 const dashboardParts = {
   null: ModuleSelect,
@@ -113,20 +112,11 @@ function ServerSettings() {
   );
 }
 function ModuleSelect({ setOpenModule }) {
-  const [enabledModules, setEnabledModules] = useState();
   const { guildId } = useParams();
-
-  useEffect(() => {
-    fetch(`${API_URL}/api/guilds/${guildId}/modules`, {
-      credentials: "include",
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then(setEnabledModules)
-      .catch(() => setEnabledModules(null));
-  }, [guildId]);
+  const enabledModules = useApi(`/guilds/${guildId}/modules`).data ?? [];
 
   const enabled = Object.fromEntries(
-    (enabledModules ?? []).map((item) => [item.module_id, item.enabled]),
+    enabledModules.map((item) => [item.module_id, item.enabled]),
   );
 
   return (
@@ -154,7 +144,7 @@ function ModuleBackButton({ setOpenModule }) {
   );
 }
 // oh when the miseryyyyy is code rotteddddd
-function ReactionRoles({ setOpenModule }) {
+function ReactionRoles() {
   const [emoji, setEmoji] = useState(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [messagIdInput, setMessageIdInput] = useState("");
@@ -273,18 +263,10 @@ function Module({ title, setOpenModule, enabled, moduleId }) {
   useEffect(() => setIsOn(enabled), [enabled]);
 
   async function toggleModule() {
-    const res = await fetch(
-      `${API_URL}/api/guilds/${guildId}/modules/${moduleId}`,
-      {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ enabled: !isOn }),
-      },
-    );
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    await api(`/guilds/${guildId}/modules/${moduleId}`, {
+      method: "POST",
+      body: { enabled: !isOn },
+    });
   }
 
   return (
@@ -366,15 +348,10 @@ function avatarUrl(user) {
 function fetchGuilds() {
   if (guildsPromise) return guildsPromise;
 
-  guildsPromise = fetch(`${API_URL}/api/guilds`, { credentials: "include" })
-    .then((r) => {
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return r.json();
-    })
-    .catch((err) => {
-      guildsPromise = null;
-      throw err;
-    });
+  guildsPromise = api("/guilds").catch((err) => {
+    guildsPromise = null;
+    throw err;
+  });
 
   return guildsPromise;
 }
@@ -384,17 +361,18 @@ function Navbar() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch(`${API_URL}/api/me`, { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : null))
+    api("/me")
       .then(setUser)
       .catch(() => setUser(null));
   }, []);
 
   async function logout() {
-    await fetch(`${API_URL}/api/logout`, {
-      method: "POST",
-      credentials: "include",
-    });
+    try {
+      await api("/logout", { method: "POST" });
+    } catch (err) {
+      console.log(err);
+    }
+
     setUser(null);
     navigate("/");
   }
