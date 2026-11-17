@@ -64,22 +64,52 @@ function Home() {
 }
 function Dashboard() {
   const [guilds, setGuilds] = useState(null);
+  const [error, setError] = useState(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let ignore = false;
     fetchGuilds()
       .then((g) => !ignore && setGuilds(g))
-      .catch(() => !ignore && setGuilds(null));
+      .catch((err) => !ignore && setError(err));
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [attempt]);
 
+  if (error?.status === 401) {
+    return (
+      <div className="loading-guilds log-in">
+        <p>Log in to see your servers</p>
+        <a href={`${API_URL}/auth/login`} className="login-button">
+          LOG IN WITH DISCORD
+        </a>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="loading-guilds">
+        <p>Couldn't load servers.</p>
+        <button
+          onClick={() => {
+            setError(null);
+            setAttempt((a) => a + 1);
+          }}
+        >
+          RETRY
+        </button>
+      </div>
+    );
+  }
   if (!guilds) {
     return <p className="loading-guilds">Loading Servers...</p>;
   }
 
   const manageable = guilds.filter(canManage);
+  if (manageable.length === 0) {
+    return <p className="loading-guilds">Nos ervers you can manage</p>;
+  }
 
   return (
     <div className="dashboard-server-select">

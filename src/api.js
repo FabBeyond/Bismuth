@@ -9,7 +9,11 @@ export async function api(path, { method = "GET", body } = {}) {
     headers: body ? { "Content-Type": "application/json" } : undefined,
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok) {
+    const err = new Error(`HTTP ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
   return res.status === 204 ? null : res.json();
 }
 
