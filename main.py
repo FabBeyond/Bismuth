@@ -26,6 +26,7 @@ API = "https://discord.com/api"
 ADMINISTRATOR = 1 << 3
 MANAGE_GUILD = 1 << 5
 TEXT, VOICE, CATEGORY, ANNOUNCEMENT = 0, 2, 4, 5
+MODULE_IDS = ["autoroles", "reactionroles"]
 
 _channel_cache = {}
 _guild_cache = {}
@@ -137,6 +138,8 @@ async def callback(request: Request, code: str | None = None, state: str | None 
             "code": code,
             "redirect_uri": REDIRECT_URI
         })
+        if token.is_error:
+            print("Discord token error:", token.status_code, token.text)
         token.raise_for_status()
         access_token = token.json()["access_token"]
 
@@ -198,7 +201,13 @@ async def guild_modules(request: Request, guild_id: int, g: dict = Depends(requi
 class ModuleUpdate(BaseModel):
     enabled: bool
 
-@app.post("/api/guilds/{guild_id}/modules/{module_id}")
+def require_module_id(module_id: str):
+    if module_id not in MODULE_IDS:
+        raise HTTPException(404, "Module not found")
+    return True
+
+@app.post("/api/guilds/{guild_id}/modules/{module_id}",
+dependencies=[Depends(require_module_id)])
 async def toggle_module(
     request: Request,
     guild_id: int,
