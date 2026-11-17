@@ -287,29 +287,33 @@ function Emoji({ value, size = 24 }) {
 function AutoRoles() {}
 function Module({ title, setOpenModule, enabled, moduleId }) {
   const [isOn, setIsOn] = useState(enabled);
+  const [pending, setPending] = useState(false);
   const { guildId } = useParams();
 
   //eslint-disable-next-line
   useEffect(() => setIsOn(enabled), [enabled]);
 
-  async function toggleModule() {
-    await api(`/guilds/${guildId}/modules/${moduleId}`, {
-      method: "POST",
-      body: { enabled: !isOn },
-    });
+  async function toggle() {
+    if (pending) return;
+    const next = !isOn;
+    setPending(true);
+    try {
+      await api(`/guilds/${guildId}/modules/${moduleId}`, {
+        method: "POST",
+        body: { enabled: next },
+      });
+      setIsOn(next);
+    } catch (err) {
+      console.log(err);
+    } finally {
+      setPending(false);
+    }
   }
 
   return (
     <div
       className={`module ${isOn ? "on" : ""}`}
-      onClick={async () => {
-        try {
-          await toggleModule();
-          setIsOn((_isOn) => !_isOn);
-        } catch (err) {
-          console.log(err);
-        }
-      }}
+      onClick={async () => await toggle()}
     >
       <p className="module-title">{title}</p>
       <p className="module-cte">CLICK TO {isOn ? "DISABLE" : "ENABLE"}</p>
@@ -434,7 +438,9 @@ function Navbar() {
               <img src={avatarUrl(user)} alt="" />
               {(user.global_name ?? user.username).toUpperCase()}
             </button>
-            <LogOutIcon className="logout-icon" onClick={() => logout()} />
+            <button className="logout-btn" onClick={() => logout()}>
+              <LogOutIcon className="logout-icon" />
+            </button>
           </>
         ) : (
           <a href={`${API_URL}/auth/login`} className="login-button">

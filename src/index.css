@@ -250,6 +250,11 @@ td:first-child {
   width: 40px;
   cursor: pointer;
 }
+.logout-btn {
+  color: transparent;
+  background-color: transparent;
+  border: none;
+}
 .dashboard-server-select {
   display: flex;
   flex-direction: row;
