@@ -108,7 +108,7 @@ function Dashboard() {
 
   const manageable = guilds.filter(canManage);
   if (manageable.length === 0) {
-    return <p className="loading-guilds">Nos ervers you can manage</p>;
+    return <p className="loading-guilds">No servers you can manage</p>;
   }
 
   return (
@@ -305,7 +305,7 @@ function Module({ title, setOpenModule, enabled, moduleId }) {
       onClick={async () => {
         try {
           await toggleModule();
-          setIsOn(!isOn);
+          setIsOn((_isOn) => !_isOn);
         } catch (err) {
           console.log(err);
         }
