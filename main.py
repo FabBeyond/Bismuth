@@ -30,6 +30,7 @@ MODULE_IDS = ["autoroles", "reactionroles"]
 
 _channel_cache = {}
 _guild_cache = {}
+_bot_guilds_cache = {}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -52,6 +53,15 @@ async def require_guild_manager(guild_id: int, request: Request, user: dict = De
         raise HTTPException(403, "Missing Manage Server")
 
     return g
+def raise_for_discord(r: httpx.Response):
+    if r.status_code == 429:
+        retry_after = r.json().get("retry_after", 1)
+        raise HTTPException(
+            503,
+            "Rate limited by Discord, try again shortly",
+            headers={"Retry-After": str(int(retry_after) + 1)},
+        )
+    r.raise_for_status()
 async def get_user_guilds(request: Request, user: dict):
     cached = _guild_cache.get(user["id"])
     if cached and time.time() - cached[0] < 60:
@@ -64,7 +74,7 @@ async def get_user_guilds(request: Request, user: dict):
     if r.status_code == 401:
         request.session.clear()
         raise HTTPException(401, "Session expired")
-    r.raise_for_status()
+    raise_for_discord(r)
     _guild_cache[user["id"]] = (time.time(), r.json())
     return r.json()
 async def bot_get(path: str):
@@ -72,9 +82,7 @@ async def bot_get(path: str):
         r = await client.get(f"{API}{path}", headers={"Authorization": f"Bot {BOT_TOKEN}"})
     if r.status_code in (403, 404):
         raise HTTPException(404, "Bot is not in this guild")
-    if r.status_code == 429:
-        raise HTTPException(503, "Rate limited by Discord, try again shortly")
-    r.raise_for_status()
+    raise_for_discord(r)
     return r.json()
 
 app = FastAPI(lifespan=lifespan)
@@ -93,6 +101,10 @@ app.add_middleware(
 )
 
 async def fetch_bot_guilds(client: httpx.AsyncClient):
+    cached = _bot_guilds_cache.get("guilds")
+    if cached and time.time() - cached[0] < 60:
+        return cached[1]
+
     guilds, after = [], None
     while True:
         params = {"limit": 200}
@@ -101,14 +113,17 @@ async def fetch_bot_guilds(client: httpx.AsyncClient):
         r = await client.get(
             f"{API}/users/@me/guilds",
             headers={"Authorization": f"Bot {BOT_TOKEN}"},
-            params=params
+            params=params,
         )
-        r.raise_for_status()
+        raise_for_discord(r)
         page = r.json()
         guilds.extend(page)
         if len(page) < 200:
-            return guilds
+            break
         after = page[-1]["id"]
+
+    _bot_guilds_cache["guilds"] = (time.time(), guilds)
+    return guilds
 
 @app.get("/auth/login")
 def login(request: Request):
@@ -140,12 +155,12 @@ async def callback(request: Request, code: str | None = None, state: str | None 
         })
         if token.is_error:
             print("Discord token error:", token.status_code, token.text)
-        token.raise_for_status()
+        raise_for_discord(token)
         access_token = token.json()["access_token"]
 
         user = await client.get(f"{API}/users/@me", headers={"Authorization": f"Bearer {access_token}"})
 
-        user.raise_for_status()
+        raise_for_discord(user)
 
     u = user.json()
     print(u)
@@ -259,3 +274,17 @@ async def guild_emojis(request: Request, guild_id: int, g: dict = Depends(requir
         for e in emojis
     ]
     return result
+
+@app.get("/api/guilds/{guild_id}/roles")
+async def guild_roles(request: Request, guild_id: int, g: dict = Depends(require_guild_manager)):
+    roles = await bot_get(f"/guilds/{guild_id}/roles")
+    print(roles)
+    result = [
+        {
+            "id": r["id"],
+            "name": r["name"]
+        }
+        for r in roles if r["name"] != "@everyone"
+    ]
+    return result
+
