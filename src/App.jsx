@@ -13,11 +13,10 @@ import {
 import { LogOutIcon, PlusIcon } from "lucide-react";
 import EmojiPicker from "emoji-picker-react";
 import { useApi } from "./api";
+import { getCDN, canManage } from "./discord";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "";
 let guildsPromise = null;
-const ADMINISTRATOR = 0x8n;
-const MANAGE_GUILD = 0x20n;
 const dashboardParts = {
   null: ModuleSelect,
   reactionroles: ReactionRoles,
@@ -217,7 +216,9 @@ function ReactionRoles({ setOpenModule }) {
                   customEmojis={emojis.map((e) => ({
                     id: e.id,
                     names: [e.name],
-                    imgUrl: `https://cdn.discordapp.com/emojis/${e.id}.${e.animated ? "gif" : "png"}`,
+                    imgUrl: getCDN(
+                      `/emojis/${e.id}.${e.animated ? "gif" : "png"}`,
+                    ),
                   }))}
                   onEmojiClick={(e) => {
                     if (e.isCustom) {
@@ -254,7 +255,7 @@ function Emoji({ value, size = 24 }) {
   const [, animated, name, id] = match;
   return (
     <img
-      src={`https://cdn.discordapp.com/emojis/${id}.${animated ? "gif" : "png"}?size=64`}
+      src={getCDN(`/emojis/${id}.${animated ? "gif" : "png"}?size=64`)}
       alt={`:${name}:`}
       title={`:${name}:`}
       width={size}
@@ -328,16 +329,7 @@ function guildIconUrl(guild, size = 128) {
   if (!guild.icon) return null;
 
   const ext = guild.icon.startsWith("a_") ? "gif" : "png";
-  return `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.${ext}?size=${size}`;
-}
-
-function canManage(guild) {
-  const perms = BigInt(guild.permissions);
-  return (
-    guild.owner ||
-    (perms & ADMINISTRATOR) === ADMINISTRATOR ||
-    (perms & MANAGE_GUILD) === MANAGE_GUILD
-  );
+  return getCDN(`/icons/${guild.id}/${guild.icon}.${ext}?size=${size}`);
 }
 
 function PyramidSchematic() {
@@ -366,10 +358,10 @@ function PyramidSchematic() {
 
 function avatarUrl(user) {
   if (user.avatar) {
-    return `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64`;
+    return getCDN(`/avatars/${user.id}/${user.avatar}.png?size=64`);
   }
   const index = Number((BigInt(user.id) >> 22n) % 6n);
-  return `https://cdn.discordapp.com/embed/avatars/${index}.png`;
+  return getCDN(`/embed/avatars/${index}.png`);
 }
 function fetchGuilds() {
   if (guildsPromise) return guildsPromise;
