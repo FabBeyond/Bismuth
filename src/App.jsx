@@ -12,6 +12,7 @@ import {
 } from "react-router";
 import { LogOutIcon, PlusIcon } from "lucide-react";
 import EmojiPicker from "emoji-picker-react";
+import { useApi } from "./api";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "";
 let guildsPromise = null;
@@ -155,36 +156,13 @@ function ModuleBackButton({ setOpenModule }) {
 }
 // oh when the miseryyyyy is code rotteddddd
 function ReactionRoles({ setOpenModule }) {
-  const [channels, setChannels] = useState([]);
-  const [emojis, setEmojis] = useState([]);
-  const [roles, setRoles] = useState([]);
   const [emoji, setEmoji] = useState(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [messagIdInput, setMessageIdInput] = useState("");
   const { guildId } = useParams();
-
-  useEffect(() => {
-    async function getChannelsAndEmojis() {
-      const res = await fetch(`${API_URL}/api/guilds/${guildId}/channels`, {
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setChannels(await res.json());
-
-      const resEmojis = await fetch(`${API_URL}/api/guilds/${guildId}/emojis`, {
-        credentials: "include",
-      });
-      if (!resEmojis.ok) throw new Error(`HTTP ${resEmojis.status}`);
-      setEmojis(await resEmojis.json());
-
-      const resRoles = await fetch(`${API_URL}/api/guilds/${guildId}/roles`, {
-        credentials: "include",
-      });
-      if (!resRoles.ok) throw new Error(`HTTP ${resRoles.status}`);
-      setRoles(await resRoles.json());
-    }
-    getChannelsAndEmojis();
-  }, [guildId]);
+  const channels = useApi(`/guilds/${guildId}/channels`).data ?? [];
+  const emojis = useApi(`/guilds/${guildId}/emojis`).data ?? [];
+  const roles = useApi(`/guilds/${guildId}/roles`).data ?? [];
 
   return (
     <div className="reaction-roles">
@@ -452,7 +430,6 @@ function Navbar() {
             <button
               className="login-button"
               onClick={() => navigate("/dashboard")}
-              title="Log out"
             >
               <img src={avatarUrl(user)} alt="" />
               {(user.global_name ?? user.username).toUpperCase()}
