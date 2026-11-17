@@ -361,7 +361,6 @@ td:first-child {
 }
 .reaction-roles {
   display: flex;
-  align-items: center;
   flex-direction: column;
   padding: 20px;
   width: calc(100% - 40px);
@@ -376,23 +375,9 @@ td:first-child {
   width: 100%;
   gap: 20px;
   display: flex;
-  flex-direction: row;
-  justify-content: center;
-}
-.rr-adder > * {
-  width: 30%;
-  color: #18345a;
-  background-color: #dcebff;
-  font-size: 30px;
-  font-weight: 700;
-}
-.rr-adder select {
-  border: none;
-}
-.rr-adder button {
-  padding: 10px;
-  width: fit-content;
-  border: none;
+  flex-direction: column;
+  border: 4px solid #dcebff;
+  padding: 20px;
 }
 .module-back-btn {
   cursor: pointer;
@@ -404,5 +389,93 @@ td:first-child {
   font-weight: 800;
   background-color: #dcebff;
   border: none;
-  color: #18345;
+  color: #18345a;
+}
+.rr-type-picker {
+  width: fit-content;
+  display: flex;
+  flex-direction: row;
+  border: 4px solid #dcebff;
+}
+.rr-type-picker button {
+  cursor: pointer;
+  padding: 20px;
+  background-color: #18345a;
+  border: none;
+  font-size: 22px;
+  font-weight: 800;
+  color: #dcebff;
+}
+.rr-type-picker button.selected {
+  background-color: #dcebff;
+  color: #18345a;
+}
+.channel-select {
+  display: flex;
+  flex-direction: column;
+  width: fit-content;
+}
+.reaction-roles select {
+  margin: 0;
+  padding: 10px;
+  width: 300px;
+  font-size: 20px;
+  font-weight: 600;
+  background-color: #18345a;
+  color: #dcebff;
+  border: 4px solid #dcebff;
+}
+.message-id input {
+  margin: 0;
+  padding: 10px;
+  width: 300px;
+  font-size: 20px;
+  font-weight: 600;
+  background-color: #18345a;
+  color: #dcebff;
+  border: 4px solid #dcebff;
+}
+.rr-message-inputs p {
+  margin: 5px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #a9c3e6;
+}
+.rr-message-inputs {
+  display: flex;
+  flex-direction: row;
+  gap: 70px;
+}
+.emoji-role-inputs {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 50px;
+}
+.rr-emoji-role {
+  border: 4px solid #dcebff;
+  border-top: none;
+  padding: 20px;
+}
+.emoji-role-inputs button {
+  font-size: 24px;
+  background-color: #18345a;
+  border: 4px solid #dcebff;
+  cursor: pointer;
+  color: #dcebff;
+  font-weight: 800;
+}
+.emoji-role-inputs button:not(.rr-add-button) {
+  width: 50px;
+  height: 50px;
+}
+.emoji-picker > p {
+  margin: 5px 0;
+  color: #a9c3e6;
+  font-size: 20px;
+  font-weight: 600;
+}
+.rr-add-button {
+  height: 50px;
+  width: fit-content;
 }

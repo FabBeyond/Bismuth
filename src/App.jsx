@@ -10,7 +10,7 @@ import {
   useNavigate,
   useParams,
 } from "react-router";
-import { LogOutIcon } from "lucide-react";
+import { LogOutIcon, PlusIcon } from "lucide-react";
 import EmojiPicker from "emoji-picker-react";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "";
@@ -157,8 +157,10 @@ function ModuleBackButton({ setOpenModule }) {
 function ReactionRoles({ setOpenModule }) {
   const [channels, setChannels] = useState([]);
   const [emojis, setEmojis] = useState([]);
+  const [roles, setRoles] = useState([]);
   const [emoji, setEmoji] = useState(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [messagIdInput, setMessageIdInput] = useState("");
   const { guildId } = useParams();
 
   useEffect(() => {
@@ -174,6 +176,10 @@ function ReactionRoles({ setOpenModule }) {
       });
       if (!resEmojis.ok) throw new Error(`HTTP ${res.status}`);
       setEmojis(await resEmojis.json());
+
+      const resRoles = await fetch(`${API_URL}/api/guilds/${guildId}/roles`);
+      if (!resRoles.ok) throw new Error(`HTTP ${res.status}`);
+      setRoles(await resRoles.json());
     }
     getChannelsAndEmojis();
   }, [guildId]);
@@ -182,42 +188,80 @@ function ReactionRoles({ setOpenModule }) {
     <div className="reaction-roles">
       <p className="rr-title">REACTION ROLES</p>
       <div className="rr-adder">
-        <select>
-          {channels
-            .filter((item) => item.type == 0)
-            .map((item) => (
+        <div className="rr-type-picker">
+          <button className="selected">EXISTING MESSAGE</button>
+          <button>SEND NEW MESSAGE</button>
+        </div>
+        <div className="rr-message-inputs">
+          <div className="channel-select">
+            <p>CHANNEL</p>
+            <select>
+              {channels
+                .filter((item) => item.type == 0)
+                .map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {"#" + item.name}
+                  </option>
+                ))}
+            </select>
+          </div>
+          <div className="message-id">
+            <p>MESSAGE ID</p>
+            <input
+              type="text"
+              placeholder="e.g. 1173048211934519356"
+              value={messagIdInput}
+              onChange={(e) => setMessageIdInput(e.target.value)}
+            />
+            <p>
+              {
+                "In Discord: right-click the message -> Copy Message ID. Needs Developer Mode on"
+              }
+            </p>
+          </div>
+        </div>
+      </div>
+      <div className="rr-emoji-role">
+        <div className="emoji-role-inputs">
+          <div className="emoji-picker">
+            <p>EMOJI</p>
+            <div className="emoji-field">
+              <button onClick={() => setPickerOpen((o) => !o)}>
+                {emoji ? <Emoji value={emoji} /> : <PlusIcon />}
+              </button>
+            </div>
+            {pickerOpen && (
+              <div className="emoji-popup">
+                <EmojiPicker
+                  theme="dark"
+                  customEmojis={emojis.map((e) => ({
+                    id: e.id,
+                    names: [e.name],
+                    imgUrl: `https://cdn.discordapp.com/emojis/${e.id}.${e.animated ? "gif" : "png"}`,
+                  }))}
+                  onEmojiClick={(e) => {
+                    if (e.isCustom) {
+                      const g = emojis.find((x) => x.id === e.emoji);
+                      setEmoji(`<${g.animated ? "a" : ""}:${g.name}:${g.id}>`);
+                    } else {
+                      setEmoji(e.emoji);
+                    }
+                    setPickerOpen(false);
+                  }}
+                />
+              </div>
+            )}
+          </div>
+          <select>
+            {roles.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.name}
               </option>
             ))}
-        </select>
-        <div className="emoji-field">
-          <button onClick={() => setPickerOpen((o) => !o)}>
-            {emoji ? <Emoji value={emoji} /> : "PICK EMOJI"}
-          </button>
+          </select>
+
+          <button className="rr-add-button">ADD</button>
         </div>
-        {pickerOpen && (
-          <div className="emoji-popup">
-            <EmojiPicker
-              theme="dark"
-              customEmojis={emojis.map((e) => ({
-                id: e.id,
-                names: [e.name],
-                imgUrl: `https://cdn.discordapp.com/emojis/${e.id}.${e.animated ? "gif" : "png"}`,
-              }))}
-              onEmojiClick={(e) => {
-                if (e.isCustom) {
-                  const g = emojis.find((x) => x.id === e.emoji);
-                  setEmoji(`<${g.animated ? "a" : ""}:${g.name}:${g.id}>`);
-                } else {
-                  setEmoji(e.emoji);
-                }
-                setPickerOpen(false);
-              }}
-            />
-          </div>
-        )}
-        <button>ADD</button>
       </div>
     </div>
   );
