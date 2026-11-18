@@ -21,6 +21,10 @@ const dashboardParts = {
   reactionroles: ReactionRoles,
   autoroles: AutoRoles,
 };
+const INVITE_URL = (guildId) =>
+  `https://discord.com/oauth2/authorize?client_id=${import.meta.env.VITE_DISCORD_CLIENT_ID}` +
+  `&scope=bot+applications.commands&permissions=268504128` +
+  `&guild_id=${guildId}&disable_guild_select=true`;
 
 function App() {
   return (
@@ -92,6 +96,7 @@ function Dashboard() {
       <div className="loading-guilds">
         <p>Couldn't load servers.</p>
         <button
+          className="login-button"
           onClick={() => {
             setError(null);
             setAttempt((a) => a + 1);
@@ -118,9 +123,15 @@ function Dashboard() {
           <GuildIcon guild={item} />
           <p>{item.name}</p>
           <div style={{ flex: 1 }}></div>
-          <Link to={`/dashboard/${item.id}`} className="manage-btn">
-            {item.bot_in_guild ? "MANAGE" : "INVITE"}
-          </Link>
+          {item.bot_in_guild ? (
+            <Link to={`/dashboard/${item.id}`} className="manage-btn">
+              MANAGE
+            </Link>
+          ) : (
+            <a href={INVITE_URL(item.id)} className="manage-btn">
+              INVITE
+            </a>
+          )}
         </div>
       ))}
     </div>
@@ -143,10 +154,12 @@ function ServerSettings() {
 }
 function ModuleSelect({ setOpenModule }) {
   const { guildId } = useParams();
-  const enabledModules = useApi(`/guilds/${guildId}/modules`).data ?? [];
+  const { data, loading } = useApi(`/guilds/${guildId}/modules`);
+
+  if (loading) return <p className="loading-guilds">Loading...</p>;
 
   const enabled = Object.fromEntries(
-    enabledModules.map((item) => [item.module_id, item.enabled]),
+    data.map((item) => [item.module_id, item.enabled]),
   );
 
   return (
@@ -179,9 +192,17 @@ function ReactionRoles() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [messagIdInput, setMessageIdInput] = useState("");
   const { guildId } = useParams();
+  const [channelId, setChannelId] = useState("");
+  const [roleId, setRoleId] = useState("");
+
   const channels = useApi(`/guilds/${guildId}/channels`).data ?? [];
   const emojis = useApi(`/guilds/${guildId}/emojis`).data ?? [];
   const roles = useApi(`/guilds/${guildId}/roles`).data ?? [];
+
+  if (channels.loading || emojis.loading || roles.loading)
+    return <p>Loading...</p>;
+  if (channels.error || emojis.error || roles.error)
+    return <p>Couldn't load server data.</p>;
 
   return (
     <div className="reaction-roles">
@@ -194,7 +215,13 @@ function ReactionRoles() {
         <div className="rr-message-inputs">
           <div className="channel-select">
             <p>CHANNEL</p>
-            <select>
+            <select
+              value={channelId}
+              onChange={(e) => setChannelId(e.target.value)}
+            >
+              <option value="" disabled>
+                Select a channel
+              </option>
               {channels
                 .filter((item) => item.type == 0)
                 .map((item) => (
@@ -253,7 +280,10 @@ function ReactionRoles() {
               </div>
             )}
           </div>
-          <select>
+          <select value={roleId} onChange={(e) => setRoleId(e.target.value)}>
+            <option value="" disabled>
+              Select a role
+            </option>
             {roles.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.name}
@@ -290,9 +320,6 @@ function Module({ title, setOpenModule, enabled, moduleId }) {
   const [pending, setPending] = useState(false);
   const { guildId } = useParams();
 
-  //eslint-disable-next-line
-  useEffect(() => setIsOn(enabled), [enabled]);
-
   async function toggle() {
     if (pending) return;
     const next = !isOn;
@@ -311,10 +338,7 @@ function Module({ title, setOpenModule, enabled, moduleId }) {
   }
 
   return (
-    <div
-      className={`module ${isOn ? "on" : ""}`}
-      onClick={async () => await toggle()}
-    >
+    <div className={`module ${isOn ? "on" : ""}`} onClick={toggle}>
       <p className="module-title">{title}</p>
       <p className="module-cte">CLICK TO {isOn ? "DISABLE" : "ENABLE"}</p>
       <div style={{ flex: 1 }}></div>
@@ -408,6 +432,7 @@ function Navbar() {
     }
 
     setUser(null);
+    guildsPromise = null;
     navigate("/");
   }
 
@@ -438,7 +463,11 @@ function Navbar() {
               <img src={avatarUrl(user)} alt="" />
               {(user.global_name ?? user.username).toUpperCase()}
             </button>
-            <button className="logout-btn" onClick={() => logout()}>
+            <button
+              className="logout-btn"
+              onClick={() => logout()}
+              aria-label="Log out"
+            >
               <LogOutIcon className="logout-icon" />
             </button>
           </>

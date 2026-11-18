@@ -248,9 +248,9 @@ td:first-child {
   color: #dcebff;
   height: 40px;
   width: 40px;
-  cursor: pointer;
 }
 .logout-btn {
+  cursor: pointer;
   color: transparent;
   background-color: transparent;
   border: none;
