@@ -13,7 +13,7 @@ export default function Module({ title, enabled, moduleId }) {
     const next = !isOn;
     setPending(true);
     try {
-      await api(`/guilds/${guildId}/modules/${moduleId}`, {
+      await api(`/guilds/${guildId}/modules/${moduleId}/toggle`, {
         method: "POST",
         body: { enabled: next },
       });

@@ -1,7 +1,7 @@
 import { useState, lazy, Suspense } from "react";
 import { useParams } from "react-router";
 import { PlusIcon } from "lucide-react";
-import { useApi } from "../api";
+import { api, useApi } from "../api";
 import { getCDN } from "../discord";
 import Emoji from "../components/Emoji";
 
@@ -116,7 +116,22 @@ export default function ReactionRoles() {
             ))}
           </select>
 
-          <button className="rr-add-button">ADD</button>
+          <button
+            className="rr-add-button"
+            onClick={() => {
+              api(`/guilds/${guildId}/modules/reactionroles`, {
+                method: "POST",
+                body: {
+                  channel_id: channelId,
+                  role_id: roleId,
+                  emoji: emoji,
+                  message_id: messagIdInput,
+                },
+              });
+            }}
+          >
+            ADD
+          </button>
         </div>
       </div>
     </div>
