@@ -1,7 +1,7 @@
 import "./index.css";
 import pyramid from "./assets/MainPagePyramid.svg";
 import bismuthLogo from "./assets/BismuthLogo.svg";
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import {
   Routes,
   Route,
@@ -11,7 +11,7 @@ import {
   useParams,
 } from "react-router";
 import { LogOutIcon, PlusIcon } from "lucide-react";
-import EmojiPicker from "emoji-picker-react";
+const EmojiPicker = lazy(() => import("emoji-picker-react"));
 import { api, useApi, API_URL } from "./api";
 import { getCDN, canManage } from "./discord";
 
@@ -253,27 +253,31 @@ function ReactionRoles() {
               </button>
             </div>
             {pickerOpen && (
-              <div className="emoji-popup">
-                <EmojiPicker
-                  theme="dark"
-                  customEmojis={emojis.map((e) => ({
-                    id: e.id,
-                    names: [e.name],
-                    imgUrl: getCDN(
-                      `/emojis/${e.id}.${e.animated ? "gif" : "png"}`,
-                    ),
-                  }))}
-                  onEmojiClick={(e) => {
-                    if (e.isCustom) {
-                      const g = emojis.find((x) => x.id === e.emoji);
-                      setEmoji(`<${g.animated ? "a" : ""}:${g.name}:${g.id}>`);
-                    } else {
-                      setEmoji(e.emoji);
-                    }
-                    setPickerOpen(false);
-                  }}
-                />
-              </div>
+              <Suspense fallback={<p>Loading...</p>}>
+                <div className="emoji-popup">
+                  <EmojiPicker
+                    theme="dark"
+                    customEmojis={emojis.map((e) => ({
+                      id: e.id,
+                      names: [e.name],
+                      imgUrl: getCDN(
+                        `/emojis/${e.id}.${e.animated ? "gif" : "png"}`,
+                      ),
+                    }))}
+                    onEmojiClick={(e) => {
+                      if (e.isCustom) {
+                        const g = emojis.find((x) => x.id === e.emoji);
+                        setEmoji(
+                          `<${g.animated ? "a" : ""}:${g.name}:${g.id}>`,
+                        );
+                      } else {
+                        setEmoji(e.emoji);
+                      }
+                      setPickerOpen(false);
+                    }}
+                  />
+                </div>
+              </Suspense>
             )}
           </div>
           <select value={roleId} onChange={(e) => setRoleId(e.target.value)}>
