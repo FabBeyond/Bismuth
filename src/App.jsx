@@ -16,11 +16,10 @@ import { api, useApi, API_URL } from "./api";
 import { getCDN, canManage } from "./discord";
 
 let guildsPromise = null;
-const dashboardParts = {
-  null: ModuleSelect,
-  reactionroles: ReactionRoles,
-  autoroles: AutoRoles,
-};
+const MODULES = [
+  { id: "reactionroles", title: "REACTION ROLES", Component: ReactionRoles },
+  { id: "autoroles", title: "AUTO ROLES", Component: AutoRoles },
+];
 const INVITE_URL = (guildId) =>
   `https://discord.com/oauth2/authorize?client_id=${import.meta.env.VITE_DISCORD_CLIENT_ID}` +
   `&scope=bot+applications.commands&permissions=268504128` +
@@ -32,7 +31,10 @@ function App() {
       <Route element={<Layout />}>
         <Route index element={<Home />} />
         <Route path="dashboard" element={<Dashboard />} />
-        <Route path="dashboard/:guildId" element={<ServerSettings />} />
+        <Route path="dashboard/:guildId" element={<ServerSettings />}>
+          <Route index element={<ModuleSelect />} />
+          <Route path=":moduleId" element={<ModulePage />} />
+        </Route>
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
@@ -141,18 +143,23 @@ function NotFound() {
   return <p>Not Found</p>;
 }
 function ServerSettings() {
-  const [openModule, setOpenModule] = useState(null);
-
-  const OpenPart = dashboardParts[openModule];
+  return <Outlet />;
+}
+function ModulePage() {
+  const { moduleId } = useParams();
+  const Part = MODULES.find((m) => m.id === moduleId)?.Component;
+  if (!Part) return <NotFound />;
 
   return (
     <>
-      {openModule && <ModuleBackButton setOpenModule={setOpenModule} />}
-      <OpenPart setOpenModule={setOpenModule} />
+      <Link to=".." className="module-back-btn">
+        BACK
+      </Link>
+      <Part />
     </>
   );
 }
-function ModuleSelect({ setOpenModule }) {
+function ModuleSelect() {
   const { guildId } = useParams();
   const { data, loading } = useApi(`/guilds/${guildId}/modules`);
 
@@ -164,26 +171,15 @@ function ModuleSelect({ setOpenModule }) {
 
   return (
     <div className="modules">
-      <Module
-        title="REACTION ROLES"
-        setOpenModule={setOpenModule}
-        enabled={enabled.reactionroles ?? false}
-        moduleId="reactionroles"
-      />
-      <Module
-        title="AUTO ROLES"
-        setOpenModule={setOpenModule}
-        enabled={enabled.autoroles ?? false}
-        moduleId="autoroles"
-      />
+      {MODULES.map((m) => (
+        <Module
+          key={m.id}
+          title={m.title}
+          enabled={enabled.reactionroles ?? false}
+          moduleId={m.id}
+        />
+      ))}
     </div>
-  );
-}
-function ModuleBackButton({ setOpenModule }) {
-  return (
-    <button onClick={() => setOpenModule(null)} className="module-back-btn">
-      BACK
-    </button>
   );
 }
 // oh when the miseryyyyy is code rotteddddd
@@ -315,10 +311,11 @@ function Emoji({ value, size = 24 }) {
   );
 }
 function AutoRoles() {}
-function Module({ title, setOpenModule, enabled, moduleId }) {
+function Module({ title, enabled, moduleId }) {
   const [isOn, setIsOn] = useState(enabled);
   const [pending, setPending] = useState(false);
   const { guildId } = useParams();
+  const navigate = useNavigate();
 
   async function toggle() {
     if (pending) return;
@@ -345,8 +342,8 @@ function Module({ title, setOpenModule, enabled, moduleId }) {
       <button
         className="module-settings-btn"
         onClick={(e) => {
-          setOpenModule(moduleId);
           e.stopPropagation();
+          navigate(moduleId);
         }}
       >
         SETTINGS
