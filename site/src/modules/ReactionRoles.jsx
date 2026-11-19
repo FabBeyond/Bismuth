@@ -15,6 +15,8 @@ export default function ReactionRoles() {
   const { guildId } = useParams();
   const [channelId, setChannelId] = useState("");
   const [roleId, setRoleId] = useState("");
+  const [existingMessage, setExistingMessage] = useState(true);
+  const [text, setText] = useState("");
 
   const channels = useApi(`/guilds/${guildId}/channels`);
   const emojis = useApi(`/guilds/${guildId}/emojis`);
@@ -41,10 +43,27 @@ export default function ReactionRoles() {
       <p className="rr-title">REACTION ROLES</p>
       <div className="rr-adder">
         <div className="rr-type-picker">
-          <button className="selected">EXISTING MESSAGE</button>
-          <button>SEND NEW MESSAGE</button>
+          <button
+            className={existingMessage ? "selected" : ""}
+            onClick={() => setExistingMessage(true)}
+          >
+            EXISTING MESSAGE
+          </button>
+          <button
+            className={existingMessage ? "" : "selected"}
+            onClick={() => setExistingMessage(false)}
+          >
+            SEND NEW MESSAGE
+          </button>
         </div>
-        <div className="rr-message-inputs">
+        <div
+          className="rr-message-inputs"
+          style={
+            existingMessage
+              ? {}
+              : { display: "flex", flexDirection: "column", gap: "20px" }
+          }
+        >
           <div className="channel-select">
             <p>CHANNEL</p>
             <select
@@ -63,20 +82,35 @@ export default function ReactionRoles() {
                 ))}
             </select>
           </div>
-          <div className="message-id">
-            <p>MESSAGE ID</p>
-            <input
-              type="text"
-              placeholder="e.g. 1173048211934519356"
-              value={messagIdInput}
-              onChange={(e) => setMessageIdInput(e.target.value)}
-            />
-            <p>
-              {
-                "In Discord: right-click the message -> Copy Message ID. Needs Developer Mode on"
-              }
-            </p>
-          </div>
+          {existingMessage ? (
+            <div className="message-id">
+              <p>MESSAGE ID</p>
+              <input
+                type="text"
+                placeholder="e.g. 1173048211934519356"
+                value={messagIdInput}
+                onChange={(e) => setMessageIdInput(e.target.value)}
+              />
+              <p>
+                {
+                  "In Discord: right-click the message -> Copy Message ID. Needs Developer Mode on"
+                }
+              </p>
+            </div>
+          ) : (
+            <div className="new-message">
+              <p className="textarea-title">Message</p>
+              <p className="textarea-subtitle">
+                Supports discords markdown features
+              </p>
+              <textarea
+                className="new-msg-textarea"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                maxLength={2000}
+              ></textarea>
+            </div>
+          )}
         </div>
       </div>
       <div className="rr-emoji-role">
@@ -130,13 +164,31 @@ export default function ReactionRoles() {
           <button
             className="rr-add-button"
             onClick={async () => {
+              let result;
+              if (!existingMessage) {
+                result = await api(
+                  `/guilds/${guildId}/channels/${channelId}/messages`,
+                  {
+                    method: "POST",
+                    body: {
+                      message: text,
+                    },
+                  },
+                );
+                if (!result.message_id) {
+                  console.log("Couldnt send message");
+                  return;
+                }
+              }
               await api(`/guilds/${guildId}/modules/reactionroles`, {
                 method: "POST",
                 body: {
                   channel_id: channelId,
                   role_id: roleId,
                   emoji: emoji,
-                  message_id: messagIdInput,
+                  message_id: existingMessage
+                    ? messagIdInput
+                    : result.message_id,
                 },
               });
               existingRR.reload();

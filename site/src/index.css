@@ -549,3 +549,19 @@ td:first-child {
   white-space: nowrap;
   text-align: center;
 }
+.new-msg-textarea {
+  resize: vertical;
+  width: 65%;
+  background-color: #18345a;
+  border: 2px solid #dcebff;
+  color: #dcebff;
+  font-size: 20px;
+  font-weight: 600;
+  min-height: 250px;
+}
+.textarea-title {
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #dcebff !important;
+  font-size: 35px !important;
+}
