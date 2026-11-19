@@ -1,4 +1,5 @@
 import httpx
+import asyncio
 from fastapi import HTTPException, Request
 
 from cache import get_value
@@ -32,18 +33,15 @@ async def fetch_user_guilds(request: Request):
     return r.json()
 
 async def bot_get(path: str):
-    async with httpx.AsyncClient() as client:
-        r = await client.get(f"{API}{path}", headers={"Authorization": f"Bot {BOT_TOKEN}"})
+    r = await bot_request("GET", path)
+
     if r.status_code in (403, 404):
         raise HTTPException(404, "Bot is not in this guild")
     raise_for_discord(r)
     return r.json()
 
 async def bot_post(path: str, body: dict):
-    async with httpx.AsyncClient() as client:
-        r = await client.post(f"{API}{path}",
-                              headers={"Authorization": f"Bot {BOT_TOKEN}"},
-                              json=body)
+    r = await bot_request("POST", path, body)
 
     if r.status_code in (403, 404):
         raise HTTPException(403, "Bot cant send messages in this channel")
@@ -51,9 +49,7 @@ async def bot_post(path: str, body: dict):
     return r.json()
 
 async def bot_put(path: str):
-    async with httpx.AsyncClient() as client:
-        r = await client.put(f"{API}{path}",
-                             headers={"Authorization": f"Bot {BOT_TOKEN}"})
+    r = await bot_request("PUT", path)
 
     if r.status_code == 403:
         raise HTTPException(403, "Bot cant add reactions in this channel")
@@ -61,6 +57,20 @@ async def bot_put(path: str):
         raise HTTPException(404, "Message not found")
 
     raise_for_discord(r)
+
+async def bot_request(method: str, path: str, json: dict | None = None):
+    async with httpx.AsyncClient() as client:
+        for attempt in range(3):
+            r = await client.request(method, f"{API}{path}",
+                                     headers={"Authorization": f"Bot {BOT_TOKEN}"},
+                                     json=json)
+
+            if r.status_code != 429:
+                return r
+            retry_after = r.json().get("retry_after", 1)
+            if retry_after > 5 or attempt == 2:
+                return r
+            await asyncio.sleep(retry_after)
 
 async def get_bot_guilds(client: httpx.AsyncClient):
     return await get_value(("bot_guilds",), 60, lambda: fetch_bot_guilds(client))

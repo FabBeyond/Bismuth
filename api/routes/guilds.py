@@ -57,6 +57,6 @@ async def guild_roles(request: Request, guild_id: int, g: dict = Depends(require
 
 @router.post("/api/guilds/{guild_id}/channels/{channel_id}/messages")
 async def send_message(request: Request, guild_id: int, channel_id: int, body: SendMessage, g: dict = Depends(require_guild_manager)):
-    channel_guild_check(guild_id, channel_id)
+    await channel_guild_check(guild_id, channel_id)
     result = await bot_post(f"/channels/{channel_id}/messages", {"content": body.message})
     return {"message_id": result["id"]}
