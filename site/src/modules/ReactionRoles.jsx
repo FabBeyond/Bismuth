@@ -1,6 +1,6 @@
 import { useState, lazy, Suspense } from "react";
 import { useParams } from "react-router";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, ArchiveXIcon } from "lucide-react";
 import { api, useApi } from "../api";
 import { getCDN } from "../discord";
 import Emoji from "../components/Emoji";
@@ -21,7 +21,12 @@ export default function ReactionRoles() {
   const roles = useApi(`/guilds/${guildId}/roles`);
   const existingRR = useApi(`/guilds/${guildId}/modules/reactionroles`);
 
-  if (channels.loading || emojis.loading || roles.loading || existingRR.loading)
+  if (
+    channels.loading ||
+    emojis.loading ||
+    roles.loading ||
+    (existingRR.loading && !existingRR.data)
+  )
     return <p className="loading-guilds">Loading...</p>;
   if (channels.error || emojis.error || roles.error || existingRR.error)
     return <p className="loading-guilds">Couldn't load server data.</p>;
@@ -124,8 +129,8 @@ export default function ReactionRoles() {
 
           <button
             className="rr-add-button"
-            onClick={() => {
-              api(`/guilds/${guildId}/modules/reactionroles`, {
+            onClick={async () => {
+              await api(`/guilds/${guildId}/modules/reactionroles`, {
                 method: "POST",
                 body: {
                   channel_id: channelId,
@@ -134,6 +139,7 @@ export default function ReactionRoles() {
                   message_id: messagIdInput,
                 },
               });
+              existingRR.reload();
             }}
           >
             ADD
@@ -146,18 +152,34 @@ export default function ReactionRoles() {
           <thead>
             <tr>
               <th>CHANNEL</th>
+              <th>MESSAGE ID</th>
               <th>EMOJI</th>
               <th>ROLE</th>
+              <th>DELETE</th>
             </tr>
           </thead>
           <tbody>
             {existingRR.data.map((rr) => (
-              <tr>
+              <tr key={`${rr.message_id}-${rr.emoji}`}>
                 <td>#{channelName(rr.channel_id)}</td>
+                <td>{rr.message_id}</td>
                 <td>
                   <Emoji value={rr.emoji} />
                 </td>
                 <td>{roleName(rr.role_id)}</td>
+                <td>
+                  <button
+                    onClick={async () => {
+                      await api(
+                        `/guilds/${guildId}/modules/reactionroles/${rr.message_id}?emoji=${encodeURIComponent(rr.emoji)}`,
+                        { method: "DELETE" },
+                      );
+                      existingRR.reload();
+                    }}
+                  >
+                    <ArchiveXIcon />
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

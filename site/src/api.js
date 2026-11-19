@@ -23,6 +23,8 @@ export function useApi(path) {
     error: null,
     loading: true,
   });
+  const [version, setVersion] = useState(0);
+
   useEffect(() => {
     let ignore = false;
     //eslint-disable-next-line
@@ -37,7 +39,7 @@ export function useApi(path) {
     return () => {
       ignore = true;
     };
-  }, [path]);
+  }, [path, version]);
 
-  return state;
+  return { ...state, reload: () => setVersion((v) => v + 1) };
 }
