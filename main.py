@@ -53,6 +53,7 @@ async def require_guild_manager(guild_id: int, request: Request, user: dict = De
         raise HTTPException(403, "Missing Manage Server")
 
     return g
+
 def raise_for_discord(r: httpx.Response):
     if r.status_code == 429:
         retry_after = r.json().get("retry_after", 1)
@@ -61,7 +62,10 @@ def raise_for_discord(r: httpx.Response):
             "Rate limited by Discord, try again shortly",
             headers={"Retry-After": str(int(retry_after) + 1)},
         )
+    if r.status_code >= 500:
+        raise HTTPException(502, "Discord is having issues, try again shortly")
     r.raise_for_status()
+
 async def get_user_guilds(request: Request, user: dict):
     cached = _guild_cache.get(user["id"])
     if cached and time.time() - cached[0] < 60:
@@ -215,12 +219,43 @@ async def guild_modules(request: Request, guild_id: int, g: dict = Depends(requi
 class ModuleUpdate(BaseModel):
     enabled: bool
 
+class ReactionRole(BaseModel):
+    channel_id: str
+    message_id: str
+    emoji: str
+    role_id: str
+
+@app.get("/api/guilds/{guild_id}/modules/reactionroles")
+async def list_reaction_roles(request: Request, guild_id: int, g: dict = Depends(require_guild_manager)):
+    rows = await request.app.state.db.fetch(
+        "SELECT * FROM reaction_roles WHERE guild_id = $1", guild_id
+    )
+    return [
+        {
+            k: str(r[k])
+            for k in ("channel_id", "message_id", "emoji", "role_id")
+            for r in rows
+        }
+    ]
+
+@app.post("/api/guilds/{guild_id}/modules/reactionroles")
+async def add_reaction_role(request: Request, guild_id: int, body: ReactionRole, g: dict = Depends(require_guild_manager)):
+    await request.app.state.db.execute(
+        """
+        INSERT INTO reaction_roles (guild_id, channel_id, message_id, emoji, role_id)
+        VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (message_id, emoji) DO UPDATE SET role_id = EXCLUDED.role_id
+        """,
+        guild_id, int(body.channel_id), int(body.message_id), body.emoji, int(body.role_id)
+    )
+    return {"ok": True}
+
 def require_module_id(module_id: str):
     if module_id not in MODULE_IDS:
         raise HTTPException(404, "Module not found")
     return True
 
-@app.post("/api/guilds/{guild_id}/modules/{module_id}",
+@app.post("/api/guilds/{guild_id}/modules/{module_id}/toggle",
 dependencies=[Depends(require_module_id)])
 async def toggle_module(
     request: Request,
