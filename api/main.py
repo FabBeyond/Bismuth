@@ -100,7 +100,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[FRONTEND_URL],
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["*"]
 )
 
@@ -231,11 +231,8 @@ async def list_reaction_roles(request: Request, guild_id: int, g: dict = Depends
         "SELECT * FROM reaction_roles WHERE guild_id = $1", guild_id
     )
     return [
-        {
-            k: str(r[k])
-            for k in ("channel_id", "message_id", "emoji", "role_id")
-            for r in rows
-        }
+        {k: str(r[k]) for k in ("channel_id", "message_id", "emoji", "role_id")}
+        for r in rows
     ]
 
 @app.post("/api/guilds/{guild_id}/modules/reactionroles")
@@ -248,6 +245,17 @@ async def add_reaction_role(request: Request, guild_id: int, body: ReactionRole,
         """,
         guild_id, int(body.channel_id), int(body.message_id), body.emoji, int(body.role_id)
     )
+    return {"ok": True}
+
+@app.delete("/api/guilds/{guild_id}/modules/reactionroles/{message_id}")
+async def delete_reaction_role(request: Request, guild_id: int, message_id: int, emoji: str, g: dict = Depends(require_guild_manager)):
+    result = await request.app.state.db.execute(
+    """
+    DELETE FROM reaction_roles
+    WHERE guild_id = $1 AND message_id = $2 AND emoji = $3
+    """, guild_id, message_id, emoji)
+    if result == "DELETE 0":
+        raise HTTPException(404, "Reaction role not found")
     return {"ok": True}
 
 def require_module_id(module_id: str):
