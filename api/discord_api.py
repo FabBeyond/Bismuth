@@ -50,6 +50,18 @@ async def bot_post(path: str, body: dict):
     raise_for_discord(r)
     return r.json()
 
+async def bot_put(path: str):
+    async with httpx.AsyncClient() as client:
+        r = await client.put(f"{API}{path}",
+                             headers={"Authorization": f"Bot {BOT_TOKEN}"})
+
+    if r.status_code == 403:
+        raise HTTPException(403, "Bot cant add reactions in this channel")
+    elif r.status_code == 404:
+        raise HTTPException(404, "Message not found")
+
+    raise_for_discord(r)
+
 async def get_bot_guilds(client: httpx.AsyncClient):
     return await get_value(("bot_guilds",), 60, lambda: fetch_bot_guilds(client))
 
@@ -88,3 +100,9 @@ async def fetch_guild_channels(guild_id: int):
 
     result.sort(key=lambda c: c["position"])
     return result
+
+async def channel_guild_check(guild_id: int, channel_id: int):
+    channels = await get_value(("channels", guild_id), 30, lambda: fetch_guild_channels(guild_id))
+    channel_ids = [c["id"] for c in channels if c["type"] != CATEGORY]
+    if (str(channel_id) not in channel_ids):
+        raise HTTPException(404, "Channel not found")

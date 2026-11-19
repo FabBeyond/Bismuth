@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from deps import require_guild_manager, require_module_id
 from models import ModuleUpdate, ReactionRole
+from discord_api import bot_put, channel_guild_check
+from urllib.parse import quote
 
 router = APIRouter()
 
@@ -30,6 +32,15 @@ async def list_reaction_roles(request: Request, guild_id: int, g: dict = Depends
 
 @router.post("/api/guilds/{guild_id}/modules/reactionroles")
 async def add_reaction_role(request: Request, guild_id: int, body: ReactionRole, g: dict = Depends(require_guild_manager)):
+    await channel_guild_check(guild_id, body.channel_id)
+
+    emoji = body.emoji
+    if body.emoji.startswith("<") and body.emoji.endswith(">"):
+        name, emoji_id = body.emoji[1:-1].split(":")[-2:]
+        emoji = f"{name}:{emoji_id}"
+
+    await bot_put(f"/channels/{body.channel_id}/messages/{body.message_id}/reactions/{quote(emoji)}/@me")
+
     await request.app.state.db.execute(
         """
         INSERT INTO reaction_roles (guild_id, channel_id, message_id, emoji, role_id)
