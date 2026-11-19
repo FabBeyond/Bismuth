@@ -1,10 +1,10 @@
 import os
-import time
 import secrets
 from urllib.parse import urlencode
 from contextlib import asynccontextmanager
 import asyncpg
 from pydantic import BaseModel
+from cache import get_value
 
 import httpx
 from dotenv import load_dotenv
@@ -27,10 +27,6 @@ ADMINISTRATOR = 1 << 3
 MANAGE_GUILD = 1 << 5
 TEXT, VOICE, CATEGORY, ANNOUNCEMENT = 0, 2, 4, 5
 MODULE_IDS = ["autoroles", "reactionroles"]
-
-_channel_cache = {}
-_guild_cache = {}
-_bot_guilds_cache = {}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -67,9 +63,9 @@ def raise_for_discord(r: httpx.Response):
     r.raise_for_status()
 
 async def get_user_guilds(request: Request, user: dict):
-    cached = _guild_cache.get(user["id"])
-    if cached and time.time() - cached[0] < 60:
-        return cached[1]
+    return await get_value(("user_guilds", user["id"]), 60, lambda: fetch_user_guilds(request))
+
+async def fetch_user_guilds(request: Request):
     async with httpx.AsyncClient() as client:
         r = await client.get(
             f"{API}/users/@me/guilds",
@@ -79,8 +75,8 @@ async def get_user_guilds(request: Request, user: dict):
         request.session.clear()
         raise HTTPException(401, "Session expired")
     raise_for_discord(r)
-    _guild_cache[user["id"]] = (time.time(), r.json())
     return r.json()
+
 async def bot_get(path: str):
     async with httpx.AsyncClient() as client:
         r = await client.get(f"{API}{path}", headers={"Authorization": f"Bot {BOT_TOKEN}"})
@@ -104,11 +100,10 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-async def fetch_bot_guilds(client: httpx.AsyncClient):
-    cached = _bot_guilds_cache.get("guilds")
-    if cached and time.time() - cached[0] < 60:
-        return cached[1]
+async def get_bot_guilds(client: httpx.AsyncClient):
+    return await get_value(("bot_guilds",), 60, lambda: fetch_bot_guilds(client))
 
+async def fetch_bot_guilds(client: httpx.AsyncClient):
     guilds, after = [], None
     while True:
         params = {"limit": 200}
@@ -126,7 +121,6 @@ async def fetch_bot_guilds(client: httpx.AsyncClient):
             break
         after = page[-1]["id"]
 
-    _bot_guilds_cache["guilds"] = (time.time(), guilds)
     return guilds
 
 @app.get("/auth/login")
@@ -188,7 +182,7 @@ def logout(request: Request):
 @app.get("/api/guilds")
 async def guilds(request: Request, user: dict = Depends(require_user)):
     async with httpx.AsyncClient() as client:
-        bot_guilds = await fetch_bot_guilds(client)
+        bot_guilds = await get_bot_guilds(client)
     bot_ids = {g["id"] for g in bot_guilds}
     r = await get_user_guilds(request, user)
 
@@ -283,10 +277,9 @@ async def toggle_module(
 
 @app.get("/api/guilds/{guild_id}/channels")
 async def guild_channels(request: Request, guild_id: int, g: dict = Depends(require_guild_manager)):
-    cached = _channel_cache.get(guild_id)
-    if cached and time.time() - cached[0] < 30:
-        return cached[1]
+    return await get_value(("channels", guild_id), 30, lambda: fetch_guild_channels(guild_id))
 
+async def fetch_guild_channels(guild_id: int):
     channels = await bot_get(f"/guilds/{guild_id}/channels")
     result = [
         {
@@ -300,7 +293,6 @@ async def guild_channels(request: Request, guild_id: int, g: dict = Depends(requ
     ]
 
     result.sort(key=lambda c: c["position"])
-    _channel_cache[guild_id] = (time.time(), result)
     return result
 
 @app.get("/api/guilds/{guild_id}/emojis")
