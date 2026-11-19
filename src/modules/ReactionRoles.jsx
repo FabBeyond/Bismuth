@@ -19,11 +19,17 @@ export default function ReactionRoles() {
   const channels = useApi(`/guilds/${guildId}/channels`);
   const emojis = useApi(`/guilds/${guildId}/emojis`);
   const roles = useApi(`/guilds/${guildId}/roles`);
+  const existingRR = useApi(`/guilds/${guildId}/modules/reactionroles`);
 
-  if (channels.loading || emojis.loading || roles.loading)
+  if (channels.loading || emojis.loading || roles.loading || existingRR.loading)
     return <p className="loading-guilds">Loading...</p>;
-  if (channels.error || emojis.error || roles.error)
+  if (channels.error || emojis.error || roles.error || existingRR.error)
     return <p className="loading-guilds">Couldn't load server data.</p>;
+
+  const channelName = (id) =>
+    channels.data.find((c) => c.id === id)?.name ?? "deleted-channel";
+  const roleName = (id) =>
+    roles.data.find((r) => r.id === id)?.name ?? "deleted-role";
 
   return (
     <div className="reaction-roles">
@@ -133,6 +139,15 @@ export default function ReactionRoles() {
             ADD
           </button>
         </div>
+      </div>
+      <p className="rr-title">EXISTING REACTION ROLES</p>
+      <div className="rr-adder">
+        {existingRR.data.map((rr) => (
+          <div className="existing-rr" key={rr.message_id + rr.emoji}>
+            #{channelName(rr.channel_id)} · <Emoji value={rr.emoji} /> →{" "}
+            {roleName(rr.role_id)}
+          </div>
+        ))}
       </div>
     </div>
   );
