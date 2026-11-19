@@ -142,12 +142,26 @@ export default function ReactionRoles() {
       </div>
       <p className="rr-title">EXISTING REACTION ROLES</p>
       <div className="rr-adder">
-        {existingRR.data.map((rr) => (
-          <div className="existing-rr" key={rr.message_id + rr.emoji}>
-            #{channelName(rr.channel_id)} · <Emoji value={rr.emoji} /> →{" "}
-            {roleName(rr.role_id)}
-          </div>
-        ))}
+        <table className="rr-table">
+          <thead>
+            <tr>
+              <th>CHANNEL</th>
+              <th>EMOJI</th>
+              <th>ROLE</th>
+            </tr>
+          </thead>
+          <tbody>
+            {existingRR.data.map((rr) => (
+              <tr>
+                <td>{channelName(rr.channel_id)}</td>
+                <td>
+                  <Emoji value={rr.emoji} />
+                </td>
+                <td>{roleName(rr.role_id)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
