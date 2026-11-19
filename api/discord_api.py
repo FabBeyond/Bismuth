@@ -39,6 +39,17 @@ async def bot_get(path: str):
     raise_for_discord(r)
     return r.json()
 
+async def bot_post(path: str, body: dict):
+    async with httpx.AsyncClient() as client:
+        r = await client.post(f"{API}{path}",
+                              headers={"Authorization": f"Bot {BOT_TOKEN}"},
+                              json=body)
+
+    if r.status_code in (403, 404):
+        raise HTTPException(403, "Bot cant send messages in this channel")
+    raise_for_discord(r)
+    return r.json()
+
 async def get_bot_guilds(client: httpx.AsyncClient):
     return await get_value(("bot_guilds",), 60, lambda: fetch_bot_guilds(client))
 

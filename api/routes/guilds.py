@@ -1,9 +1,11 @@
 import httpx
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, HTTPException
 
 from cache import get_value
 from deps import require_user, require_guild_manager
-from discord_api import bot_get, fetch_guild_channels, get_bot_guilds, get_user_guilds
+from discord_api import bot_get, bot_post, fetch_guild_channels, get_bot_guilds, get_user_guilds
+from models import SendMessage
+from config import CATEGORY
 
 router = APIRouter()
 
@@ -54,3 +56,12 @@ async def guild_roles(request: Request, guild_id: int, g: dict = Depends(require
         for r in roles if r["name"] != "@everyone"
     ]
     return result
+
+@router.post("/api/guilds/{guild_id}/channels/{channel_id}/messages")
+async def send_message(request: Request, guild_id: int, channel_id: int, body: SendMessage, g: dict = Depends(require_guild_manager)):
+    channels = await get_value(("channels", guild_id), 30, lambda: fetch_guild_channels(guild_id))
+    channel_ids = [c["id"] for c in channels if c["type"] != CATEGORY]
+    if (str(channel_id) not in channel_ids):
+        raise HTTPException(404, "Channel not found")
+    result = await bot_post(f"/channels/{channel_id}/messages", {"content": body.message})
+    return {"message_id": result["id"]}
