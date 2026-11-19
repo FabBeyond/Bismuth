@@ -378,6 +378,7 @@ td:first-child {
 }
 .rr-adder {
   width: 100%;
+  box-sizing: border-box;
   gap: 20px;
   display: flex;
   flex-direction: column;

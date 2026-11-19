@@ -153,7 +153,7 @@ export default function ReactionRoles() {
           <tbody>
             {existingRR.data.map((rr) => (
               <tr>
-                <td>{channelName(rr.channel_id)}</td>
+                <td>#{channelName(rr.channel_id)}</td>
                 <td>
                   <Emoji value={rr.emoji} />
                 </td>
