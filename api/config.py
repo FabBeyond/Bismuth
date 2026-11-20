@@ -15,4 +15,4 @@ API = "https://discord.com/api"
 ADMINISTRATOR = 1 << 3
 MANAGE_GUILD = 1 << 5
 TEXT, VOICE, CATEGORY, ANNOUNCEMENT = 0, 2, 4, 5
-MODULE_IDS = ["autoroles", "reactionroles"]
+MODULE_IDS = ["autoroles", "reactionroles", "honeypot"]

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from deps import require_guild_manager, require_module_id
-from models import ModuleUpdate, ReactionRole, AutoRole
+from models import ModuleUpdate, ReactionRole, AutoRole, Honeypot
 from discord_api import bot_put, channel_guild_check
 from urllib.parse import quote
 
@@ -96,6 +96,51 @@ async def delete_auto_role(request: Request, guild_id: int, role_id: int, g: dic
     if result == "DELETE 0":
         raise HTTPException(404, "Auto role not found")
     return {"ok": True}
+
+
+@router.get("/api/guilds/{guild_id}/modules/honeypot")
+async def list_honeypot(request: Request, guild_id: int, g: dict = Depends(require_guild_manager)):
+    rows = await request.app.state.db.fetch(
+        "SELECT * FROM honeypot WHERE guild_id = $1", guild_id
+        )
+    return [
+        {
+            "channel_id": str(r["channel_id"]),
+            "action": r["action"],
+            "message": r["message"],
+            "delete_seconds": r["delete_seconds"]
+        }
+        for r in rows
+    ]
+
+@router.post("/api/guilds/{guild_id}/modules/honeypot")
+async def add_honeypot(request: Request, guild_id: int, body: Honeypot, g: dict = Depends(require_guild_manager)):
+    await channel_guild_check(guild_id, body.channel_id)
+
+    await request.app.state.db.execute(
+        """
+        INSERT INTO honeypot (guild_id, channel_id, action, message, delete_seconds)
+        VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (guild_id, channel_id) DO UPDATE SET
+            action = EXCLUDED.action,
+            message = EXCLUDED.message,
+            delete_seconds = EXCLUDED.delete_seconds
+        """, guild_id, int(body.channel_id), body.action, body.message, body.delete_seconds
+    )
+    return {"ok": True}
+
+@router.delete("/api/guilds/{guild_id}/modules/honeypot/{channel_id}")
+async def delete_honeypot(request: Request, guild_id: int, channel_id: int, g: dict = Depends(require_guild_manager)):
+    result = await request.app.state.db.execute(
+        """
+        DELETE FROM honeypot
+        WHERE guild_id = $1 AND channel_id = $2
+        """, guild_id, channel_id
+    )
+    if result == "DELETE 0":
+        raise HTTPException(404, "Honeypot channel not found")
+    return {"ok": True}
+
 
 @router.post("/api/guilds/{guild_id}/modules/{module_id}/toggle",
 dependencies=[Depends(require_module_id)])
