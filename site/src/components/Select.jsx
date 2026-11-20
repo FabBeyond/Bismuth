@@ -2,7 +2,7 @@ const TEXT_CHANNEL = 0;
 
 // Shared base for all dropdowns. Pass `id` when a <label htmlFor> points at it,
 // otherwise `label` is used as the accessible name.
-function Select({
+export function Select({
   items,
   value,
   onChange,
