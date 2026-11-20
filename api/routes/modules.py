@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from deps import require_guild_manager, require_module_id
-from models import ModuleUpdate, ReactionRole
+from models import ModuleUpdate, ReactionRole, AutoRole
 from discord_api import bot_put, channel_guild_check
 from urllib.parse import quote
 
@@ -60,6 +60,41 @@ async def delete_reaction_role(request: Request, guild_id: int, message_id: int,
     """, guild_id, message_id, emoji)
     if result == "DELETE 0":
         raise HTTPException(404, "Reaction role not found")
+    return {"ok": True}
+
+@router.get("/api/guilds/{guild_id}/modules/autoroles")
+async def list_auto_roles(request: Request, guild_id: int, g: dict = Depends(require_guild_manager)):
+    rows = await request.app.state.db.fetch(
+        "SELECT * FROM autoroles WHERE guild_id = $1", guild_id
+        )
+    return [
+        {
+            "role_id": str(r["role_id"])
+        }
+        for r in rows
+    ]
+
+@router.post("/api/guilds/{guild_id}/modules/autoroles")
+async def add_auto_role(request: Request, guild_id: int, body: AutoRole, g: dict = Depends(require_guild_manager)):
+    await request.app.state.db.execute(
+        """
+        INSERT INTO autoroles (guild_id, role_id)
+        VALUES($1, $2)
+        ON CONFLICT (guild_id, role_id) DO NOTHING
+        """, guild_id, int(body.role_id)
+    )
+    return {"ok": True}
+
+@router.delete("/api/guilds/{guild_id}/modules/autoroles/{role_id}")
+async def delete_auto_role(request: Request, guild_id: int, role_id: int, g: dict = Depends(require_guild_manager)):
+    result = await request.app.state.db.execute(
+        """
+        DELETE FROM autoroles
+        WHERE guild_id = $1 AND role_id = $2
+        """, guild_id, role_id
+    )
+    if result == "DELETE 0":
+        raise HTTPException(404, "Auto role not found")
     return {"ok": True}
 
 @router.post("/api/guilds/{guild_id}/modules/{module_id}/toggle",

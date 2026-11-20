@@ -9,5 +9,8 @@ class ReactionRole(BaseModel):
     emoji: str
     role_id: str
 
+class AutoRole(BaseModel):
+    role_id: str
+
 class SendMessage(BaseModel):
     message: str = Field(min_length=1, max_length=2000)

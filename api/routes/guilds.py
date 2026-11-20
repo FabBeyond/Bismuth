@@ -2,8 +2,9 @@ import httpx
 from fastapi import APIRouter, Depends, Request
 
 from deps import require_user, require_guild_manager
-from discord_api import bot_get, bot_post, get_bot_guilds, get_user_guilds, channel_guild_check
+from discord_api import bot_get, bot_post, fetch_guild_channels, get_bot_guilds, get_user_guilds, channel_guild_check
 from models import SendMessage
+from cache import get_value
 
 router = APIRouter()
 
