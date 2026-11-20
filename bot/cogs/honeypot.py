@@ -43,6 +43,8 @@ class Honeypot(commands.Cog):
                     await author.send(result["message"])
                 except discord.Forbidden:
                     pass
+                except discord.HTTPException:
+                    pass
 
             try:
                 if action == "kick":
