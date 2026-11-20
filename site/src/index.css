@@ -565,3 +565,7 @@ td:first-child {
   color: #dcebff !important;
   font-size: 35px !important;
 }
+.rr-adder.autoroles {
+  display: flex;
+  flex-direction: row;
+}
