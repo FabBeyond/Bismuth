@@ -15,5 +15,6 @@ dist/
 # Editors / OS
 .idea/
 .vscode/*
+pyrightconfig.json
 .DS_Store
 *.log
