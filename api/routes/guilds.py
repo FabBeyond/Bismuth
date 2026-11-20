@@ -10,10 +10,13 @@ router = APIRouter()
 
 @router.get("/api/guilds")
 async def guilds(request: Request, user: dict = Depends(require_user)):
-    async with httpx.AsyncClient() as client:
-        bot_guilds = await get_bot_guilds(client)
-    bot_ids = {g["id"] for g in bot_guilds}
-    r = await get_user_guilds(request, user)
+    user_guilds = await get_user_guilds(request, user)
+
+    rows = await request.app.state.db.fetch(
+        "SELECT guild_id FROM bot_guilds WHERE guild_id = ANY($1::bigint[])",
+        [int(g["id"]) for g in user_guilds]
+    )
+    bot_ids = {str(r["guild_id"]) for r in rows}
 
     return [
         {
@@ -23,7 +26,7 @@ async def guilds(request: Request, user: dict = Depends(require_user)):
             "owner": g["owner"],
             "permissions": g["permissions"],
             "bot_in_guild": g["id"] in bot_ids
-        } for g in r
+        } for g in user_guilds
     ]
 
 @router.get("/api/guilds/{guild_id}/channels")

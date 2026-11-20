@@ -17,7 +17,7 @@ async def get_value(key, ttl, fetch):
     inflight[key] = task
 
     try: 
-        result = await fetch()
+        result = await task
         cache[key] = (time.time(), result)
         return result
     finally:
