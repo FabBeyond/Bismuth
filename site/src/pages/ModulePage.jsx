@@ -9,7 +9,7 @@ export default function ModulePage() {
 
   return (
     <>
-      <Link to=".." className="module-back-btn">
+      <Link to=".." className="btn back-btn">
         BACK
       </Link>
       <Part />

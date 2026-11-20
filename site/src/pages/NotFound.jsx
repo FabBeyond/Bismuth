@@ -1,3 +1,5 @@
+import StatusMessage from "../components/StatusMessage";
+
 export default function NotFound() {
-  return <p>Not Found</p>;
+  return <StatusMessage>Not Found</StatusMessage>;
 }

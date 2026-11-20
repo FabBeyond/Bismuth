@@ -25,17 +25,19 @@ export default function Module({ title, enabled, moduleId }) {
     }
   }
 
+  // The toggle button's click area is stretched over the whole card in CSS,
+  // so clicking anywhere toggles, while the settings button sits on top.
   return (
-    <div className={`module ${isOn ? "on" : ""}`} onClick={toggle}>
-      <p className="module-title">{title}</p>
-      <p className="module-cte">CLICK TO {isOn ? "DISABLE" : "ENABLE"}</p>
-      <div style={{ flex: 1 }}></div>
+    <div className={`module ${isOn ? "on" : ""}`}>
+      <button className="module-toggle" onClick={toggle} aria-pressed={isOn}>
+        <span className="module-title">{title}</span>
+        <span className="module-hint">
+          CLICK TO {isOn ? "DISABLE" : "ENABLE"}
+        </span>
+      </button>
       <button
-        className="module-settings-btn"
-        onClick={(e) => {
-          e.stopPropagation();
-          navigate(moduleId);
-        }}
+        className="btn btn-lg module-settings-btn"
+        onClick={() => navigate(moduleId)}
       >
         SETTINGS
       </button>

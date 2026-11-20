@@ -3,7 +3,7 @@ import pyramid from "../assets/MainPagePyramid.svg";
 export default function PyramidSchematic() {
   return (
     <div className="pyramid-schematic">
-      <img src={pyramid} alt="pyramid" />
+      <img src={pyramid} alt="" />
       <table className="pyramid-table">
         <tbody>
           <tr>

@@ -1,65 +1,52 @@
-import { api, useApi } from "../api.js";
-import { useParams } from "react-router";
-import { ArchiveXIcon } from "lucide-react";
 import { useState } from "react";
+import { useParams } from "react-router";
+import { api, useApi } from "../api";
+import DeleteButton from "../components/DeleteButton";
+import RoleSelect from "../components/RoleSelect";
+import StatusMessage from "../components/StatusMessage";
 
 export default function AutoRoles() {
   const { guildId } = useParams();
   const [roleId, setRoleId] = useState("");
-  const existingAR = useApi(`/guilds/${guildId}/modules/autoroles`, {
-    method: "GET",
-  });
+  const autoRoles = useApi(`/guilds/${guildId}/modules/autoroles`);
   const roles = useApi(`/guilds/${guildId}/roles`);
-  const channels = useApi(`/guilds/${guildId}/channels`);
 
-  if (
-    (existingAR.loading && !existingAR.data) ||
-    roles.loading ||
-    channels.loading
-  )
-    return <p className="loading-guilds">Loading...</p>;
-  if (existingAR.error || roles.error || channels.error)
-    return <p className="loading-guilds">Couldn't load server data.</p>;
+  if ((autoRoles.loading && !autoRoles.data) || roles.loading)
+    return <StatusMessage>Loading...</StatusMessage>;
+  if (autoRoles.error || roles.error)
+    return <StatusMessage>Couldn't load server data.</StatusMessage>;
 
   const roleName = (id) =>
     roles.data.find((r) => r.id === id)?.name ?? "deleted-role";
 
+  async function addAutoRole() {
+    await api(`/guilds/${guildId}/modules/autoroles`, {
+      method: "POST",
+      body: { role_id: roleId },
+    });
+    autoRoles.reload();
+  }
+
+  async function deleteAutoRole(id) {
+    await api(`/guilds/${guildId}/modules/autoroles/${id}`, {
+      method: "DELETE",
+    });
+    autoRoles.reload();
+  }
+
   return (
-    <div className="reaction-roles">
-      <p className="rr-title">AUTO ROLES</p>
-      <div className="rr-adder autoroles">
-        <div className="rr-message-inputs">
-          <div className="channel-select">
-            <select value={roleId} onChange={(e) => setRoleId(e.target.value)}>
-              <option value="" disabled>
-                Select a role
-              </option>
-              {roles.data.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <div className="emoji-role-inputs">
-          <button
-            className="rr-add-button"
-            onClick={async () => {
-              await api(`/guilds/${guildId}/modules/autoroles`, {
-                method: "POST",
-                body: { role_id: roleId },
-              });
-              existingAR.reload();
-            }}
-          >
-            ADD
-          </button>
-        </div>
+    <div className="module-page">
+      <h1 className="section-title">AUTO ROLES</h1>
+      <div className="panel panel-row">
+        <RoleSelect roles={roles.data} value={roleId} onChange={setRoleId} />
+        <button className="btn btn-outline" onClick={addAutoRole}>
+          ADD
+        </button>
       </div>
-      <p className="rr-title">EXISTING AUTO ROLES</p>
-      <div className="rr-adder">
-        <table className="rr-table">
+
+      <h2 className="section-title">EXISTING AUTO ROLES</h2>
+      <div className="panel">
+        <table className="data-table">
           <thead>
             <tr>
               <th>ROLE</th>
@@ -67,21 +54,14 @@ export default function AutoRoles() {
             </tr>
           </thead>
           <tbody>
-            {existingAR.data.map((rr) => (
-              <tr key={rr.role_id}>
-                <td>{roleName(rr.role_id)}</td>
+            {autoRoles.data.map((ar) => (
+              <tr key={ar.role_id}>
+                <td>{roleName(ar.role_id)}</td>
                 <td>
-                  <button
-                    onClick={async () => {
-                      await api(
-                        `/guilds/${guildId}/modules/autoroles/${rr.role_id}`,
-                        { method: "DELETE" },
-                      );
-                      existingAR.reload();
-                    }}
-                  >
-                    <ArchiveXIcon />
-                  </button>
+                  <DeleteButton
+                    label={`Remove auto role ${roleName(ar.role_id)}`}
+                    onClick={() => deleteAutoRole(ar.role_id)}
+                  />
                 </td>
               </tr>
             ))}

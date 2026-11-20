@@ -1,15 +1,14 @@
 import { useParams } from "react-router";
 import { useApi } from "../api";
+import StatusMessage from "../components/StatusMessage";
 
 export default function Honeypot() {
-  const guildId = useParams();
+  const { guildId } = useParams();
   const channels = useApi(`/guilds/${guildId}/channels`);
-  const existingHP = useApi(`/guilds/${guildId}/modules/honeypot`, {
-    method: "GET",
-  });
+  const existingHP = useApi(`/guilds/${guildId}/modules/honeypot`);
 
-  if (channels.loading && !existingHP.data)
-    return <p className="loading-guilds">Loading...</p>;
+  if (channels.loading || (existingHP.loading && !existingHP.data))
+    return <StatusMessage>Loading...</StatusMessage>;
   if (channels.error || existingHP.error)
-    return <p className="loading-guilds">Couldn't load server data.</p>;
+    return <StatusMessage>Couldn't load server data.</StatusMessage>;
 }

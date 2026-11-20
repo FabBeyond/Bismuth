@@ -1,22 +1,25 @@
 import { useState, lazy, Suspense } from "react";
 import { useParams } from "react-router";
-import { PlusIcon, ArchiveXIcon } from "lucide-react";
+import { PlusIcon } from "lucide-react";
 import { api, useApi } from "../api";
 import { getCDN } from "../discord";
+import DeleteButton from "../components/DeleteButton";
 import Emoji from "../components/Emoji";
+import RoleSelect from "../components/RoleSelect";
+import StatusMessage from "../components/StatusMessage";
 
 const EmojiPicker = lazy(() => import("emoji-picker-react"));
 
 // oh when the miseryyyyy is code rotteddddd
 export default function ReactionRoles() {
+  const { guildId } = useParams();
+  const [existingMessage, setExistingMessage] = useState(true);
+  const [channelId, setChannelId] = useState("");
+  const [messageId, setMessageId] = useState("");
+  const [text, setText] = useState("");
   const [emoji, setEmoji] = useState(null);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [messagIdInput, setMessageIdInput] = useState("");
-  const { guildId } = useParams();
-  const [channelId, setChannelId] = useState("");
   const [roleId, setRoleId] = useState("");
-  const [existingMessage, setExistingMessage] = useState(true);
-  const [text, setText] = useState("");
 
   const channels = useApi(`/guilds/${guildId}/channels`);
   const emojis = useApi(`/guilds/${guildId}/emojis`);
@@ -29,44 +32,88 @@ export default function ReactionRoles() {
     roles.loading ||
     (existingRR.loading && !existingRR.data)
   )
-    return <p className="loading-guilds">Loading...</p>;
+    return <StatusMessage>Loading...</StatusMessage>;
   if (channels.error || emojis.error || roles.error || existingRR.error)
-    return <p className="loading-guilds">Couldn't load server data.</p>;
+    return <StatusMessage>Couldn't load server data.</StatusMessage>;
 
   const channelName = (id) =>
     channels.data.find((c) => c.id === id)?.name ?? "deleted-channel";
   const roleName = (id) =>
     roles.data.find((r) => r.id === id)?.name ?? "deleted-role";
 
+  function pickEmoji(e) {
+    if (e.isCustom) {
+      const custom = emojis.data.find((x) => x.id === e.emoji);
+      setEmoji(`<${custom.animated ? "a" : ""}:${custom.name}:${custom.id}>`);
+    } else {
+      setEmoji(e.emoji);
+    }
+    setPickerOpen(false);
+  }
+
+  async function addReactionRole() {
+    let targetMessageId = messageId;
+    if (!existingMessage) {
+      const result = await api(
+        `/guilds/${guildId}/channels/${channelId}/messages`,
+        { method: "POST", body: { message: text } },
+      );
+      if (!result.message_id) {
+        console.log("Couldnt send message");
+        return;
+      }
+      targetMessageId = result.message_id;
+    }
+
+    await api(`/guilds/${guildId}/modules/reactionroles`, {
+      method: "POST",
+      body: {
+        channel_id: channelId,
+        role_id: roleId,
+        emoji: emoji,
+        message_id: targetMessageId,
+      },
+    });
+    existingRR.reload();
+  }
+
+  async function deleteReactionRole(rr) {
+    await api(
+      `/guilds/${guildId}/modules/reactionroles/${rr.message_id}?emoji=${encodeURIComponent(rr.emoji)}`,
+      { method: "DELETE" },
+    );
+    existingRR.reload();
+  }
+
   return (
-    <div className="reaction-roles">
-      <p className="rr-title">REACTION ROLES</p>
-      <div className="rr-adder">
-        <div className="rr-type-picker">
+    <div className="module-page">
+      <h1 className="section-title">REACTION ROLES</h1>
+      <div className="panel">
+        <div className="segmented">
           <button
-            className={existingMessage ? "selected" : ""}
+            aria-pressed={existingMessage}
             onClick={() => setExistingMessage(true)}
           >
             EXISTING MESSAGE
           </button>
           <button
-            className={existingMessage ? "" : "selected"}
+            aria-pressed={!existingMessage}
             onClick={() => setExistingMessage(false)}
           >
             SEND NEW MESSAGE
           </button>
         </div>
+
         <div
-          className="rr-message-inputs"
-          style={
-            existingMessage
-              ? {}
-              : { display: "flex", flexDirection: "column", gap: "20px" }
-          }
+          className={`field-row ${existingMessage ? "" : "field-row-stacked"}`}
         >
-          <div className="channel-select">
-            <p>CHANNEL</p>
+          <div className="field">
+            <label className="field-label" htmlFor="rr-channel">
+              CHANNEL
+            </label>
             <select
+              id="rr-channel"
+              className="input"
               value={channelId}
               onChange={(e) => setChannelId(e.target.value)}
             >
@@ -74,133 +121,94 @@ export default function ReactionRoles() {
                 Select a channel
               </option>
               {channels.data
-                .filter((item) => item.type == 0)
-                .map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {"#" + item.name}
+                .filter((c) => c.type === 0)
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    #{c.name}
                   </option>
                 ))}
             </select>
           </div>
+
           {existingMessage ? (
-            <div className="message-id">
-              <p>MESSAGE ID</p>
+            <div className="field">
+              <label className="field-label" htmlFor="rr-message-id">
+                MESSAGE ID
+              </label>
               <input
+                id="rr-message-id"
+                className="input"
                 type="text"
                 placeholder="e.g. 1173048211934519356"
-                value={messagIdInput}
-                onChange={(e) => setMessageIdInput(e.target.value)}
+                value={messageId}
+                onChange={(e) => setMessageId(e.target.value)}
               />
-              <p>
+              <p className="field-hint">
                 {
                   "In Discord: right-click the message -> Copy Message ID. Needs Developer Mode on"
                 }
               </p>
             </div>
           ) : (
-            <div className="new-message">
-              <p className="textarea-title">Message</p>
-              <p className="textarea-subtitle">
-                Supports discords markdown features
-              </p>
+            <div>
+              <label
+                className="field-label field-label-large"
+                htmlFor="rr-message-text"
+              >
+                Message
+              </label>
+              <p className="field-hint">Supports discords markdown features</p>
               <textarea
-                className="new-msg-textarea"
+                id="rr-message-text"
+                className="textarea"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 maxLength={2000}
-              ></textarea>
+              />
             </div>
           )}
         </div>
       </div>
-      <div className="rr-emoji-role">
-        <div className="emoji-role-inputs">
-          <div className="emoji-picker">
-            <p>EMOJI</p>
-            <div className="emoji-field">
-              <button onClick={() => setPickerOpen((o) => !o)}>
-                {emoji ? <Emoji value={emoji} /> : <PlusIcon />}
-              </button>
-            </div>
+
+      <div className="panel panel-attached">
+        <div className="field-row field-row-bottom">
+          <div className="field">
+            <label className="field-label" htmlFor="rr-emoji">
+              EMOJI
+            </label>
+            <button
+              id="rr-emoji"
+              className="btn btn-outline btn-square"
+              onClick={() => setPickerOpen((open) => !open)}
+            >
+              {emoji ? <Emoji value={emoji} /> : <PlusIcon />}
+            </button>
             {pickerOpen && (
               <Suspense fallback={<p>Loading...</p>}>
-                <div className="emoji-popup">
-                  <EmojiPicker
-                    theme="dark"
-                    customEmojis={emojis.data.map((e) => ({
-                      id: e.id,
-                      names: [e.name],
-                      imgUrl: getCDN(
-                        `/emojis/${e.id}.${e.animated ? "gif" : "png"}`,
-                      ),
-                    }))}
-                    onEmojiClick={(e) => {
-                      if (e.isCustom) {
-                        const g = emojis.data.find((x) => x.id === e.emoji);
-                        setEmoji(
-                          `<${g.animated ? "a" : ""}:${g.name}:${g.id}>`,
-                        );
-                      } else {
-                        setEmoji(e.emoji);
-                      }
-                      setPickerOpen(false);
-                    }}
-                  />
-                </div>
+                <EmojiPicker
+                  theme="dark"
+                  customEmojis={emojis.data.map((e) => ({
+                    id: e.id,
+                    names: [e.name],
+                    imgUrl: getCDN(
+                      `/emojis/${e.id}.${e.animated ? "gif" : "png"}`,
+                    ),
+                  }))}
+                  onEmojiClick={pickEmoji}
+                />
               </Suspense>
             )}
           </div>
-          <select value={roleId} onChange={(e) => setRoleId(e.target.value)}>
-            <option value="" disabled>
-              Select a role
-            </option>
-            {roles.data.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-
-          <button
-            className="rr-add-button"
-            onClick={async () => {
-              let result;
-              if (!existingMessage) {
-                result = await api(
-                  `/guilds/${guildId}/channels/${channelId}/messages`,
-                  {
-                    method: "POST",
-                    body: {
-                      message: text,
-                    },
-                  },
-                );
-                if (!result.message_id) {
-                  console.log("Couldnt send message");
-                  return;
-                }
-              }
-              await api(`/guilds/${guildId}/modules/reactionroles`, {
-                method: "POST",
-                body: {
-                  channel_id: channelId,
-                  role_id: roleId,
-                  emoji: emoji,
-                  message_id: existingMessage
-                    ? messagIdInput
-                    : result.message_id,
-                },
-              });
-              existingRR.reload();
-            }}
-          >
+          <RoleSelect roles={roles.data} value={roleId} onChange={setRoleId} />
+          <button className="btn btn-outline" onClick={addReactionRole}>
             ADD
           </button>
         </div>
       </div>
-      <p className="rr-title">EXISTING REACTION ROLES</p>
-      <div className="rr-adder">
-        <table className="rr-table">
+
+      <h2 className="section-title">EXISTING REACTION ROLES</h2>
+      <div className="panel">
+        <table className="data-table">
           <thead>
             <tr>
               <th>CHANNEL</th>
@@ -220,17 +228,10 @@ export default function ReactionRoles() {
                 </td>
                 <td>{roleName(rr.role_id)}</td>
                 <td>
-                  <button
-                    onClick={async () => {
-                      await api(
-                        `/guilds/${guildId}/modules/reactionroles/${rr.message_id}?emoji=${encodeURIComponent(rr.emoji)}`,
-                        { method: "DELETE" },
-                      );
-                      existingRR.reload();
-                    }}
-                  >
-                    <ArchiveXIcon />
-                  </button>
+                  <DeleteButton
+                    label="Delete reaction role"
+                    onClick={() => deleteReactionRole(rr)}
+                  />
                 </td>
               </tr>
             ))}

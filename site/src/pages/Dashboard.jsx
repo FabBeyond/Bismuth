@@ -4,6 +4,7 @@ import { API_URL } from "../api";
 import { canManage, INVITE_URL } from "../discord";
 import { fetchGuilds } from "../guilds";
 import GuildIcon from "../components/GuildIcon";
+import StatusMessage from "../components/StatusMessage";
 
 export default function Dashboard() {
   const [guilds, setGuilds] = useState(null);
@@ -22,52 +23,57 @@ export default function Dashboard() {
 
   if (error?.status === 401) {
     return (
-      <div className="loading-guilds log-in">
-        <p>Log in to see your servers</p>
-        <a href={`${API_URL}/auth/login`} className="login-button">
-          LOG IN WITH DISCORD
-        </a>
-      </div>
+      <StatusMessage
+        action={
+          <a href={`${API_URL}/auth/login`} className="btn login-button">
+            LOG IN WITH DISCORD
+          </a>
+        }
+      >
+        Log in to see your servers
+      </StatusMessage>
     );
   }
   if (error) {
     return (
-      <div className="loading-guilds">
-        <p>Couldn't load servers.</p>
-        <button
-          className="login-button"
-          onClick={() => {
-            setError(null);
-            setAttempt((a) => a + 1);
-          }}
-        >
-          RETRY
-        </button>
-      </div>
+      <StatusMessage
+        action={
+          <button
+            className="btn login-button"
+            onClick={() => {
+              setError(null);
+              setAttempt((a) => a + 1);
+            }}
+          >
+            RETRY
+          </button>
+        }
+      >
+        Couldn't load servers.
+      </StatusMessage>
     );
   }
   if (!guilds) {
-    return <p className="loading-guilds">Loading Servers...</p>;
+    return <StatusMessage>Loading Servers...</StatusMessage>;
   }
 
   const manageable = guilds.filter(canManage);
   if (manageable.length === 0) {
-    return <p className="loading-guilds">No servers you can manage</p>;
+    return <StatusMessage>No servers you can manage</StatusMessage>;
   }
 
   return (
-    <div className="dashboard-server-select">
-      {manageable.map((item) => (
-        <div key={item.id} className="server">
-          <GuildIcon guild={item} />
-          <p>{item.name}</p>
-          <div style={{ flex: 1 }}></div>
-          {item.bot_in_guild ? (
-            <Link to={`/dashboard/${item.id}`} className="manage-btn">
+    <div className="server-grid">
+      {manageable.map((guild) => (
+        <div key={guild.id} className="server">
+          <GuildIcon guild={guild} />
+          <p className="server-name">{guild.name}</p>
+          {guild.bot_in_guild ? (
+            <Link to={`/dashboard/${guild.id}`} className="btn btn-lg">
               MANAGE
             </Link>
           ) : (
-            <a href={INVITE_URL(item.id)} className="manage-btn">
+            <a href={INVITE_URL(guild.id)} className="btn btn-lg">
               INVITE
             </a>
           )}

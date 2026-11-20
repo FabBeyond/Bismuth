@@ -6,6 +6,12 @@ import { api, API_URL } from "../api";
 import { avatarUrl } from "../discord";
 import { clearGuildsCache } from "../guilds";
 
+const SOURCE_LINKS = [
+  { label: "BOT SOURCE", href: "https://github.com/FabBeyond/BismuthBot" },
+  { label: "SITE SOURCE", href: "https://github.com/FabBeyond/BismuthWebsite" },
+  { label: "API SOURCE", href: "https://github.com/FabBeyond/BismuthApi" },
+];
+
 export default function Navbar() {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
@@ -29,46 +35,44 @@ export default function Navbar() {
   }
 
   return (
-    <div className="nav-bar">
+    <header className="nav-bar">
       <div className="nav-left">
-        <img src={bismuthLogo} alt="bismuth logo" />
-        <Link className="title" to="/">
+        <img className="nav-logo" src={bismuthLogo} alt="" />
+        <Link className="nav-title" to="/">
           BISMUTH
         </Link>
       </div>
-      <div className="nav-right">
-        <a href="https://github.com/FabBeyond/BismuthBot" target="_blank">
-          BOT SOURCE
-        </a>
-        <a href="https://github.com/FabBeyond/BismuthWebsite" target="_blank">
-          SITE SOURCE
-        </a>
-        <a href="https://github.com/FabBeyond/BismuthApi" target="_blank">
-          API SOURCE
-        </a>
+      <nav className="nav-right">
+        {SOURCE_LINKS.map(({ label, href }) => (
+          <a
+            key={href}
+            className="nav-link"
+            href={href}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {label}
+          </a>
+        ))}
         {user ? (
           <>
             <button
-              className="login-button"
+              className="btn login-button"
               onClick={() => navigate("/dashboard")}
             >
               <img src={avatarUrl(user)} alt="" />
               {(user.global_name ?? user.username).toUpperCase()}
             </button>
-            <button
-              className="logout-btn"
-              onClick={() => logout()}
-              aria-label="Log out"
-            >
-              <LogOutIcon className="logout-icon" />
+            <button className="icon-btn" onClick={logout} aria-label="Log out">
+              <LogOutIcon />
             </button>
           </>
         ) : (
-          <a href={`${API_URL}/auth/login`} className="login-button">
+          <a href={`${API_URL}/auth/login`} className="btn login-button">
             LOG IN WITH DISCORD
           </a>
         )}
-      </div>
-    </div>
+      </nav>
+    </header>
   );
 }

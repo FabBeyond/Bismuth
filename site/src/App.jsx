@@ -1,4 +1,3 @@
-import "./index.css";
 import { Routes, Route, Outlet } from "react-router";
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
@@ -26,9 +25,11 @@ function App() {
 
 function Layout() {
   return (
-    <div className="main">
+    <div className="frame">
       <Navbar />
-      <Outlet />
+      <main>
+        <Outlet />
+      </main>
     </div>
   );
 }
