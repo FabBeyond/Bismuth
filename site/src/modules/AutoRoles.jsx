@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams } from "react-router";
 import { api, useApi } from "../api";
 import DeleteButton from "../components/DeleteButton";
-import RoleSelect from "../components/RoleSelect";
+import { RoleSelect } from "../components/Select";
 import StatusMessage from "../components/StatusMessage";
 
 export default function AutoRoles() {

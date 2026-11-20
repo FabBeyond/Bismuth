@@ -5,7 +5,7 @@ import { api, useApi } from "../api";
 import { getCDN } from "../discord";
 import DeleteButton from "../components/DeleteButton";
 import Emoji from "../components/Emoji";
-import RoleSelect from "../components/RoleSelect";
+import { ChannelSelect, RoleSelect } from "../components/Select";
 import StatusMessage from "../components/StatusMessage";
 
 const EmojiPicker = lazy(() => import("emoji-picker-react"));
@@ -111,23 +111,12 @@ export default function ReactionRoles() {
             <label className="field-label" htmlFor="rr-channel">
               CHANNEL
             </label>
-            <select
+            <ChannelSelect
               id="rr-channel"
-              className="input"
+              channels={channels.data}
               value={channelId}
-              onChange={(e) => setChannelId(e.target.value)}
-            >
-              <option value="" disabled>
-                Select a channel
-              </option>
-              {channels.data
-                .filter((c) => c.type === 0)
-                .map((c) => (
-                  <option key={c.id} value={c.id}>
-                    #{c.name}
-                  </option>
-                ))}
-            </select>
+              onChange={setChannelId}
+            />
           </div>
 
           {existingMessage ? (
