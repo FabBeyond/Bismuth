@@ -6,12 +6,6 @@ import { api, API_URL } from "../api";
 import { avatarUrl } from "../discord";
 import { clearGuildsCache } from "../guilds";
 
-const SOURCE_LINKS = [
-  { label: "BOT SOURCE", href: "https://github.com/FabBeyond/BismuthBot" },
-  { label: "SITE SOURCE", href: "https://github.com/FabBeyond/BismuthWebsite" },
-  { label: "API SOURCE", href: "https://github.com/FabBeyond/BismuthApi" },
-];
-
 export default function Navbar() {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
@@ -43,17 +37,14 @@ export default function Navbar() {
         </Link>
       </div>
       <nav className="nav-right">
-        {SOURCE_LINKS.map(({ label, href }) => (
-          <a
-            key={href}
-            className="nav-link"
-            href={href}
-            target="_blank"
-            rel="noreferrer"
-          >
-            {label}
-          </a>
-        ))}
+        <a
+          className="nav-link"
+          href="https://github.com/FabBeyond/Bismuth"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Source Code
+        </a>
         {user ? (
           <>
             <button
