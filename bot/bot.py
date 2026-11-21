@@ -8,6 +8,8 @@ from discord.ext import commands
 import config
 import logging
 
+from utils.settings_cache import SettingsCache
+
 log = logging.getLogger("bismuth")
 
 
@@ -15,6 +17,7 @@ class Bismuth(commands.AutoShardedBot):
     def __init__(self):
         intents = discord.Intents.default()
         intents.members = True
+        self.settings = None
 
         super().__init__(
             command_prefix=commands.when_mentioned,
@@ -32,13 +35,24 @@ class Bismuth(commands.AutoShardedBot):
         self.session = aiohttp.ClientSession()
         await self.run_migrations()
 
+        self.settings = SettingsCache(self.pool, config.DATABASE_URL)
+        self.settings.start()
+
         for file in Path("cogs").glob("*.py"):
             if file.stem.startswith("_"):
                 continue
             await self.load_extension(f"cogs.{file.stem}")
             log.info("Loaded cog %s", file.stem)
 
+        if config.DEV_GUILD_ID:
+            guild = discord.Object(id=config.DEV_GUILD_ID)
+            self.tree.copy_global_to(guild=guild)
+            await self.tree.sync(guild=guild)
+            log.info("Synced commands to dev guild %s", config.DEV_GUILD_ID)
+
     async def close(self):
+        if self.settings:
+            await self.settings.stop()
         if self.session:
             await self.session.close()
         if self.pool:
